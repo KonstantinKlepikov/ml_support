@@ -12,3 +12,4 @@ myvenv
 *.bak
 *.dat
 *.dir
+kernels/images/exitimg/*.png
