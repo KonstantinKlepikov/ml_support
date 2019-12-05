@@ -4,7 +4,9 @@ checkpoint
 logs/*
 tf_logs/*
 input/**
+!input/.gitkeep
 output/**
+!output/.gitkeep
 *.pyc
 *~
 __pycache__
