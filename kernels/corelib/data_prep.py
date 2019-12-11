@@ -3,24 +3,35 @@ import pandas as pd
 import os
 from zipfile import ZipFile
 
-def loader(path, index_col=False):
+def loader(path, index_col=False, dtype=None, encoding=None):
 
     """
     Unpack kaggle zip-data, then return dict of pd.data
     
     Parameters
     ----------
-    path: current path to folder with data
-        String
+    :param path: current path to folder with data
+        string
     
-    index_col: Column to use as the row labels of the DataFrame, either given as string name or column index.
+    :param index_col: Column to use as the row labels of the DataFrame, either given as string name or column index.
     If a sequence of int / str is given, a MultiIndex is used.
     Note: index_col=False can be used to force pandas to not use the first column as the index, e.g. when 
     you have a malformed file with delimiters at the end of each line. 
-        int, str, sequence of int / str, or False, default None
-        
-    Future:
-    encoding='utf-8' parameter for open method
+        int, str, sequence of int / str, or False, default False
+
+    :param dtype: Data type for data or columns. E.g. {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’} 
+    Use str or object together with suitable na_values settings to preserve and not interpret dtype. 
+    If converters are specified, they will be applied INSTEAD of dtype conversion
+        dict, default None
+
+    :param encoding: Encoding to use for UTF when reading/writing (ex. ‘utf-8’)
+        str, default None
+
+    Future
+    ------
+
+    - Code/decode checking for .zip
+    - Search deeper in folder
 
     """
     
@@ -32,17 +43,16 @@ def loader(path, index_col=False):
 
         if os.path.splitext(path_ex)[1] == ".zip":
             with ZipFile(path_ex, 'r') as g:
-                file_list = g.namelist()
-                for file_name in file_list:
+                for file_name in g.namelist():
                     if file_name.endswith('.csv'):
                         with g.open(file_name) as h:
                             filename = os.path.splitext(file_name)[0]
-                            data_dict[filename] = pd.read_csv(h, index_col=index_col)
+                            data_dict[filename] = pd.read_csv(h, index_col=index_col, dtype=dtype)
 
         elif os.path.splitext(path_ex)[1] == ".csv":
-            with open(path_ex, 'r') as g:
+            with open(path_ex, 'r', encoding=encoding) as g:
                 filename = os.path.splitext(i)[0]
-                data_dict[filename] = pd.read_csv(g, index_col=index_col)
+                data_dict[filename] = pd.read_csv(g, index_col=index_col, dtype=dtype)
 
     return data_dict
 
@@ -53,7 +63,7 @@ def reduce_mem_usage(df, verbose=True):
     
     Parameters
     ----------
-    df: pandas data frame
+    :param df: pandas data frame
         pd.DataFrame object
 
     """
@@ -98,10 +108,10 @@ def search_func(data, *cols):
     
     Parameters
     ----------
-    data: pandas data frame
+    :param data: pandas data frame
         pd.DataFrame object
     
-    cols: list of columns, where function search for unical ordered value 
+    :param cols: list of columns, where function search for unical ordered value
         list, tuple
     
     """
