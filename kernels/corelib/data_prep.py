@@ -100,6 +100,41 @@ def reduce_mem_usage(df, verbose=True):
     
     return df
 
+def reduce_obj_mem_usage(df, verbose=True):
+
+    """
+    Reduse object. Return new data frame, containing only columns with dtype object.
+    Columns with number of unique values, that is no more than 50%, recieve subtype category
+    
+    Parameters
+    ----------
+    :param df: pandas data frame
+        pd.DataFrame object
+
+    """
+    
+    df = df.select_dtypes(include=['object']).copy()
+
+    df.describe()
+    start_mem = df.memory_usage().sum() / 1024**2
+
+    converted = pd.DataFrame()
+
+    for col in df.columns:
+        unic = len(df[col].unique())
+        total = len(df[col])
+        if unic / total < 0.5:
+            converted.loc[:,col] = df[col].astype('category')
+        else:
+            converted.loc[:,col] = df[col]
+
+    converted.describe()
+    end_mem = converted.memory_usage().sum() / 1024**2
+
+    if verbose: print('Mem. usage decreased to {:5.2f} Mb ({:.1f}% reduction)'.format(end_mem, 100 * (start_mem - end_mem) / start_mem))
+
+    return converted
+
 def search_func(data, *cols):
 
     """
