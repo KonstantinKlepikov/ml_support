@@ -3,10 +3,13 @@ import pandas as pd
 import os
 from zipfile import ZipFile
 
-def loader(path, index_col=False, dtype=None, encoding=None):
+DATA_PATH = os.path.realpath('../input')
+DUMP_PATH = os.path.realpath('../kernels/loaded_data')
+
+def loader(path=DATA_PATH, index_col=False, dtype=None, encoding=None):
 
     """
-    Unpack kaggle zip-data, then return dict of pd.data
+    Unpack kaggle zip-data, then return pandas dataframe (function prototype)
     
     Parameters
     ----------
@@ -27,9 +30,15 @@ def loader(path, index_col=False, dtype=None, encoding=None):
     :param encoding: Encoding to use for UTF when reading/writing (ex. ‘utf-8’)
         str, default None
 
+    Return
+    ------
+
+    Dict with pandas data frame objects
+
     Future
     ------
 
+    - Rebuilding function prototype to more readable and shortest implementation
     - Code/decode checking for .zip
     - Search deeper in folder
 
@@ -47,24 +56,42 @@ def loader(path, index_col=False, dtype=None, encoding=None):
                     if file_name.endswith('.csv'):
                         with g.open(file_name) as h:
                             filename = os.path.splitext(file_name)[0]
-                            data_dict[filename] = pd.read_csv(h, index_col=index_col, dtype=dtype)
+                            # check the headers for compliance with the index
+                            if index_col and pd.read_csv(h, index_col=0, nrows=0).columns.tolist().count(index_col):
+                                data_dict[filename] = pd.read_csv(h, index_col=index_col, dtype=dtype)
+                            else:
+                                data_dict[filename] = pd.read_csv(h, index_col=False, dtype=dtype)
 
         elif os.path.splitext(path_ex)[1] == ".csv":
             with open(path_ex, 'r', encoding=encoding) as g:
                 filename = os.path.splitext(i)[0]
-                data_dict[filename] = pd.read_csv(g, index_col=index_col, dtype=dtype)
+                # check the headers for compliance with the index
+                if index_col and pd.read_csv(g, index_col=0, nrows=0).columns.tolist().count(index_col):
+                    data_dict[filename] = pd.read_csv(g, index_col=index_col, dtype=dtype)
+                else:
+                    data_dict[filename] = pd.read_csv(g, index_col=False, dtype=dtype)
 
     return data_dict
 
 def reduce_mem_usage(df, verbose=True):
 
     """
-    Reduse numeric 
+    Reduce numeric 
     
     Parameters
     ----------
     :param df: pandas data frame
         pd.DataFrame object
+
+    Return
+    ------
+
+    Pandas data frame
+
+    Future
+    ------
+
+    - optimisation by transfer float to int
 
     """
 
@@ -103,13 +130,24 @@ def reduce_mem_usage(df, verbose=True):
 def reduce_obj_mem_usage(df, verbose=True):
 
     """
-    Reduse object. Return new data frame, containing only columns with dtype object.
+    Reduce object. Return new data frame, containing only columns with dtype object.
     Columns with number of unique values, that is no more than 50%, recieve subtype category
     
     Parameters
     ----------
     :param df: pandas data frame
         pd.DataFrame object
+
+    Return
+    ------
+
+    New pandas data frame, which contains only object and categorial dtype columns.
+    All other columns is droped.
+
+    Future
+    ------
+
+    - all columns return
 
     """
     
@@ -148,6 +186,11 @@ def search_func(data, *cols):
     
     :param cols: list of columns, where function search for unical ordered value
         list, tuple
+
+    Return
+    ------
+
+    List of dicts, where keys are names of values for ordered encoding, and values are position in order
     
     """
 
