@@ -16,3 +16,4 @@ myvenv
 *.dat
 *.dir
 kernels/images/exitimg/*.png
+loaded_data/**
