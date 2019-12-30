@@ -7,16 +7,6 @@ DATA_PATH = os.path.realpath('../input')
 DUMP_PATH = os.path.realpath('../kernels/loaded_data')
 
 
-def extractor (data, index, dtype):
-    
-    """
-    Function check the headers of .csv file for compliance with the index
-
-    """
-    if not pd.read_csv(data, index_col=0, nrows=0).columns.tolist().count(index):
-        index=False
-    return pd.read_csv(data, index_col=index, dtype=dtype)
-
 class DataLoader:
 
     """
@@ -32,6 +22,18 @@ class DataLoader:
         self.path_ex = path_ex
         self.i = i
 
+    def extractor(self, opened):
+    
+        """
+        Check the headers of .csv file for compliance with the index
+
+        """
+        data_for_opening = pd.read_csv(opened, index_col=self.index_col, dtype=self.dtype)
+        heading = pd.read_csv(opened, index_col=0, nrows=0).columns.tolist().count(self.index_col)
+        if self.index_col and not heading:
+            self.index_col=False
+        return data_for_opening
+
 class csvLoader(DataLoader):
 
     """
@@ -44,9 +46,9 @@ class csvLoader(DataLoader):
         Unpacking *.csv file
 
         """
-        with open(self.path_ex, 'r', encoding=self.coding) as g:
+        with open(self.path_ex, 'r', encoding=self.coding) as opened:
             filename = os.path.splitext(self.i)[0]
-            return [filename, extractor(g, self.index_col, self.dtype)]
+            return [filename, super(csvLoader, self).extractor(opened)]
 
 class zipLoader(DataLoader):
 
@@ -59,9 +61,9 @@ class zipLoader(DataLoader):
         with ZipFile(self.path_ex, 'r') as g:
             for file_name in g.namelist():
                 if file_name.endswith('.csv'):
-                    with g.open(file_name) as h:
+                    with g.open(file_name) as opened:
                         filename = os.path.splitext(file_name)[0]
-                        return [filename, extractor(h, self.index_col, self.dtype)]
+                        return [filename, super(zipLoader, self).extractor(opened)]
 
 
 def loader(path=DATA_PATH, index_col=False, dtype=None, coding=None):
@@ -106,20 +108,24 @@ def loader(path=DATA_PATH, index_col=False, dtype=None, coding=None):
 
     for i in os.listdir(path):
         path_ex = os.path.join(path, i)
+        data_ext = {
+            '.csv': csvLoader(path, index_col, dtype, coding, path_ex, i),
+            '.zip': zipLoader(path, index_col, dtype, coding, path_ex, i)
+        }
         loaded = None
 
-        if os.path.splitext(path_ex)[1] == ".csv":
-            csvload = csvLoader(path, index_col, dtype, coding, path_ex, i)
-        elif os.path.splitext(path_ex)[1] == ".zip":
-            csvload = zipLoader(path, index_col, dtype, coding, path_ex, i)
+        for item in data_ext.items():
+            if os.path.splitext(path_ex)[1] == item[0]:
+                csvload = item[1]
         
-        try:
-            loaded = csvload.dictLoader(path_ex, i)
-        except:
-            print('Unsupported file extension')
+                loaded = csvload.dictLoader()
+                # try:
+                #     loaded = csvload.dictLoader()
+                # except:
+                #     print('{0} has unsupported file extension'.format(i))
 
-        if loaded:
-            data_dict[loaded[0]] = loaded[1]
+                if loaded:
+                    data_dict[loaded[0]] = loaded[1]
 
     return data_dict
 
