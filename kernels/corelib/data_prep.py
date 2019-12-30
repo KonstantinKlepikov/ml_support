@@ -10,47 +10,61 @@ DUMP_PATH = os.path.realpath('../kernels/loaded_data')
 class DataLoader:
 
     """
-    Class provide methods for unpacking *.csv and *.zip files to dict of DataFrame objects
+    Class provide method constructor for unpacking files
 
-    """
-    def __init__(self, path, index_col, dtype, coding):
+    """    
+    def __init__(self, path, index_col, dtype, coding, path_ex, file_list):
+
         self.path = path
         self.index_col = index_col
         self.dtype = dtype
         self.coding = coding
+        self.path_ex = path_ex
+        self.file_list = file_list
 
-    def csvLoader(self, path_ex, i):
+    def extractor(self, file_open):
+    
+        """
+        Check the headers of .csv file for compliance with the index. If index is wrong, None is returned
 
         """
-        Unpacking *.csv file
+        try:
+            data_for_opening = pd.read_csv(file_open, index_col=self.index_col, dtype=self.dtype)
+            print(data_for_opening)
+        except:
+            print("'{0}' is wrong name for parsing of column".format(self.index_col))
+            data_for_opening = None
 
-        """
-        with open(path_ex, 'r', encoding=self.coding) as g:
-            filename = os.path.splitext(i)[0]
-            # check the headers for compliance with the index
-            if self.index_col and pd.read_csv(g, index_col=0, nrows=0).columns.tolist().count(self.index_col):
-                pass
-            else:
-                self.index_col=False
-            return [filename, pd.read_csv(g, index_col=self.index_col, dtype=self.dtype)]
+        return data_for_opening
 
-    def zipLoader(self, path_ex):
+class csvLoader(DataLoader):
 
-        """
-        Unpacking *.zip file
+    """
+    Class provide method for open *.csv files and save it to dict of DataFrame objects
 
-        """
-        with ZipFile(path_ex, 'r') as g:
+    """
+    def dictLoader(self):
+
+        # Open and save *.csv file
+        with open(self.path_ex, 'r', encoding=self.coding) as file_open:
+            filename = os.path.splitext(self.file_list)[0]
+            return [filename, super(csvLoader, self).extractor(file_open)]
+
+class zipLoader(DataLoader):
+
+    """
+    Class provide method for unpac *.csv files from .zip archive and save it to dict of DataFrame objects
+
+    """
+    def dictLoader(self):
+
+        # Open .zip and save *.csv file
+        with ZipFile(self.path_ex, 'r') as g:
             for file_name in g.namelist():
                 if file_name.endswith('.csv'):
-                    with g.open(file_name) as h:
+                    with g.open(file_name) as file_open:
                         filename = os.path.splitext(file_name)[0]
-                        # check the headers for compliance with the index
-                        if self.index_col and pd.read_csv(h, index_col=0, nrows=0).columns.tolist().count(self.index_col):
-                            pass
-                        else:
-                            self.index_col=False
-                        return [filename, pd.read_csv(h, index_col=self.index_col, dtype=self.dtype)]
+                        return [filename, super(zipLoader, self).extractor(file_open)]
 
 
 def loader(path=DATA_PATH, index_col=False, dtype=None, coding=None):
@@ -85,26 +99,32 @@ def loader(path=DATA_PATH, index_col=False, dtype=None, coding=None):
     Future
     ------
 
+    - rewrite extractor for checking different headers in different files
     - Code/decode checking for .zip
     - Search deeper in folder
     - diferent delimiters
     - other formats
+    - time stamps converter
 
     """
     data_dict = {}
 
-    for i in os.listdir(path):
-        path_ex = os.path.join(path, i)
-        csvload = DataLoader(path, index_col, dtype, coding)
+    for file_list in os.listdir(path):
+        path_ex = os.path.join(path, file_list)
+        data_ext = {
+            '.csv': csvLoader(path, index_col, dtype, coding, path_ex, file_list),
+            '.zip': zipLoader(path, index_col, dtype, coding, path_ex, file_list)
+        }
         loaded = None
 
-        if os.path.splitext(path_ex)[1] == ".csv":
-            loaded = csvload.csvLoader(path_ex, i)
-        elif os.path.splitext(path_ex)[1] == ".zip":
-            loaded = csvload.zipLoader(path_ex)
- 
-        if loaded:
-            data_dict[loaded[0]] = loaded[1]
+        for item in data_ext.items():
+            if os.path.splitext(path_ex)[1] == item[0]:
+                csvload = item[1]
+        
+                loaded = csvload.dictLoader()
+
+                if loaded:
+                    data_dict[loaded[0]] = loaded[1]
 
     return data_dict
 
@@ -128,6 +148,7 @@ def reduce_mem_usage(df, verbose=True):
     ------
 
     - optimisation by transfer float to int
+    - reduce objects
 
     """
     numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
