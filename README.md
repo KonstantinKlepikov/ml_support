@@ -18,8 +18,6 @@ Repository is prepared for kaggle tasks
 
 ## Content
 
-Now is available^
-
 - table data preprocessing
 
 - table data visualisation

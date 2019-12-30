@@ -6,10 +6,71 @@ from zipfile import ZipFile
 DATA_PATH = os.path.realpath('../input')
 DUMP_PATH = os.path.realpath('../kernels/loaded_data')
 
-def loader(path=DATA_PATH, index_col=False, dtype=None, encoding=None):
+
+class DataLoader:
 
     """
-    Unpack kaggle zip-data, then return pandas dataframe (function prototype)
+    Class provide method constructor for unpacking files
+
+    """    
+    def __init__(self, path, index_col, dtype, coding, path_ex, file_list):
+
+        self.path = path
+        self.index_col = index_col
+        self.dtype = dtype
+        self.coding = coding
+        self.path_ex = path_ex
+        self.file_list = file_list
+
+    def extractor(self, file_open):
+    
+        """
+        Check the headers of .csv file for compliance with the index. If index is wrong, None is returned
+
+        """
+        try:
+            data_for_opening = pd.read_csv(file_open, index_col=self.index_col, dtype=self.dtype)
+            print(data_for_opening)
+        except:
+            print("'{0}' is wrong name for parsing of column".format(self.index_col))
+            data_for_opening = None
+
+        return data_for_opening
+
+class csvLoader(DataLoader):
+
+    """
+    Class provide method for open *.csv files and save it to dict of DataFrame objects
+
+    """
+    def dictLoader(self):
+
+        # Open and save *.csv file
+        with open(self.path_ex, 'r', encoding=self.coding) as file_open:
+            filename = os.path.splitext(self.file_list)[0]
+            return [filename, super(csvLoader, self).extractor(file_open)]
+
+class zipLoader(DataLoader):
+
+    """
+    Class provide method for unpac *.csv files from .zip archive and save it to dict of DataFrame objects
+
+    """
+    def dictLoader(self):
+
+        # Open .zip and save *.csv file
+        with ZipFile(self.path_ex, 'r') as g:
+            for file_name in g.namelist():
+                if file_name.endswith('.csv'):
+                    with g.open(file_name) as file_open:
+                        filename = os.path.splitext(file_name)[0]
+                        return [filename, super(zipLoader, self).extractor(file_open)]
+
+
+def loader(path=DATA_PATH, index_col=False, dtype=None, coding=None):
+    
+    """
+    Unpack kaggle data, then return pandas dataframe (function prototype)
     
     Parameters
     ----------
@@ -38,40 +99,35 @@ def loader(path=DATA_PATH, index_col=False, dtype=None, encoding=None):
     Future
     ------
 
-    - Rebuilding function prototype to more readable and shortest implementation
+    - rewrite extractor for checking different headers in different files
     - Code/decode checking for .zip
     - Search deeper in folder
+    - diferent delimiters
+    - other formats
+    - time stamps converter
 
     """
-    
     data_dict = {}
 
-    for i in os.listdir(path):
+    for file_list in os.listdir(path):
+        path_ex = os.path.join(path, file_list)
+        data_ext = {
+            '.csv': csvLoader(path, index_col, dtype, coding, path_ex, file_list),
+            '.zip': zipLoader(path, index_col, dtype, coding, path_ex, file_list)
+        }
+        loaded = None
 
-        path_ex = os.path.join(path, i)
+        for item in data_ext.items():
+            if os.path.splitext(path_ex)[1] == item[0]:
+                csvload = item[1]
+        
+                loaded = csvload.dictLoader()
 
-        if os.path.splitext(path_ex)[1] == ".zip":
-            with ZipFile(path_ex, 'r') as g:
-                for file_name in g.namelist():
-                    if file_name.endswith('.csv'):
-                        with g.open(file_name) as h:
-                            filename = os.path.splitext(file_name)[0]
-                            # check the headers for compliance with the index
-                            if index_col and pd.read_csv(h, index_col=0, nrows=0).columns.tolist().count(index_col):
-                                data_dict[filename] = pd.read_csv(h, index_col=index_col, dtype=dtype)
-                            else:
-                                data_dict[filename] = pd.read_csv(h, index_col=False, dtype=dtype)
-
-        elif os.path.splitext(path_ex)[1] == ".csv":
-            with open(path_ex, 'r', encoding=encoding) as g:
-                filename = os.path.splitext(i)[0]
-                # check the headers for compliance with the index
-                if index_col and pd.read_csv(g, index_col=0, nrows=0).columns.tolist().count(index_col):
-                    data_dict[filename] = pd.read_csv(g, index_col=index_col, dtype=dtype)
-                else:
-                    data_dict[filename] = pd.read_csv(g, index_col=False, dtype=dtype)
+                if loaded:
+                    data_dict[loaded[0]] = loaded[1]
 
     return data_dict
+
 
 def reduce_mem_usage(df, verbose=True):
 
@@ -86,17 +142,16 @@ def reduce_mem_usage(df, verbose=True):
     Return
     ------
 
-    Pandas data frame
+    Pandas data frame object
 
     Future
     ------
 
     - optimisation by transfer float to int
+    - reduce objects
 
     """
-
     numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
-
     start_mem = df.memory_usage().sum() / 1024**2
 
     for col in df.columns:
@@ -122,10 +177,10 @@ def reduce_mem_usage(df, verbose=True):
                     df[col] = df[col].astype(np.float64)
                     
     end_mem = df.memory_usage().sum() / 1024**2
-
     if verbose: print('Mem. usage decreased to {:5.2f} Mb ({:.1f}% reduction)'.format(end_mem, 100 * (start_mem - end_mem) / start_mem))
     
     return df
+
 
 def reduce_obj_mem_usage(df, verbose=True):
 
@@ -149,8 +204,7 @@ def reduce_obj_mem_usage(df, verbose=True):
 
     - all columns return
 
-    """
-    
+    """    
     df = df.select_dtypes(include=['object']).copy()
 
     df.describe()
@@ -173,6 +227,7 @@ def reduce_obj_mem_usage(df, verbose=True):
 
     return converted
 
+
 def search_func(data, *cols):
 
     """
@@ -193,7 +248,6 @@ def search_func(data, *cols):
     List of dicts, where keys are names of values for ordered encoding, and values are position in order
     
     """
-
     full_map = []
 
     for i in cols:
