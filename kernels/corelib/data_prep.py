@@ -4,8 +4,6 @@ import os
 from zipfile import ZipFile
 
 DATA_PATH = os.path.realpath('../input')
-DUMP_PATH = os.path.realpath('../kernels/loaded_data')
-
 
 class DataLoader:
 
@@ -32,7 +30,7 @@ class DataLoader:
             data_for_opening = pd.read_csv(file_open, index_col=self.index_col, dtype=self.dtype)
             print(data_for_opening)
         except:
-            print("'{0}' is wrong name for parsing of column".format(self.index_col))
+            print("'{}' is wrong name for parsing of column".format(self.index_col))
             data_for_opening = None
 
         return data_for_opening
