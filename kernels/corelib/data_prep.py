@@ -28,7 +28,6 @@ class DataLoader:
         """
         try:
             data_for_opening = pd.read_csv(file_open, index_col=self.index_col, dtype=self.dtype)
-            print(data_for_opening)
         except:
             print("'{}' is wrong name for parsing of column".format(self.index_col))
             data_for_opening = None
