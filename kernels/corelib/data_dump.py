@@ -3,10 +3,48 @@ import os
 
 DUMP_PATH = '../kernels/dumped_data/'
 
-def shelve_dump(dump_list=None, path='default', task=None):
+class DataDump:
 
     """
-    Save and open data series with shelve
+    Class provide method constructor for serialise data
+
+    """
+    def __init__(self, dump_list, path):
+
+        self.dump_list = dump_list
+        self.path = path
+        self.ospath= os.path.realpath(DUMP_PATH + path)
+
+class ShelveDump(DataDump):
+
+    """
+    Class provide methods for save and load data with shelve
+    
+    """
+    def save(self):
+
+        with shelve.open(self.ospath) as s:
+            for k, v in enumerate(self.dump_list):
+                try:
+                    s[str(k)] = v
+                    print('Object {0} is dumped to "{1}" objects'.format(k, self.path))
+                except TypeError:
+                    print('Object {} not dumped - an error occurred'.format(k))
+
+    def load(self):
+
+        dict_of_objects = {}
+        with shelve.open(self.ospath) as o:
+            for k, v in o.items():
+                dict_of_objects[k] = v
+            return dict_of_objects.values()
+
+def dumper(dump_list=None, path='default', method='shelve', task=None):
+
+    """
+    Save and open data with serialise tools. 
+    Now available:
+    - shelve
     
     Parameters
     ----------
@@ -16,25 +54,27 @@ def shelve_dump(dump_list=None, path='default', task=None):
     :param path: current path name to folder with data
         string, default 'default'
 
+    :param method: method of serialisation
+        string, default 'shelve'
+
     :param task: type of operation. 's' for saving, 'o' for opening
         string, default None
 
-    """
-    ospath = os.path.realpath(DUMP_PATH + path)
+    """    
+    if method == 'shelve':
+        dumped = ShelveDump(dump_list, path)
+    else:
+        print('Wrong method')
 
     if task == 's':
-        with shelve.open(ospath) as s:
-            for k, v in enumerate(dump_list):
-                try:
-                    s[str(k)] = v
-                    print('Object {0} is dumped to "{1}" objects'.format(k, path))
-                except:
-                    print('Object {} not dumped - an error occurred'.format(k))
+        try: 
+            dumped.save()
+        except NameError:
+            print("Objects can't be saved")
     elif task == 'o':
-        dict_of_objects = {}
-        with shelve.open(ospath) as o:
-            for k, v in o.items():
-                dict_of_objects[k] = v
-            return dict_of_objects.values()
+        try: 
+            return dumped.load()
+        except NameError:
+            print("Objects can't be extracted")
     else:
-        print("Operation not started. Set task 'o' for opening or set task 's' for saving.")
+        print("No one object are dumped. Set task 'o' for opening or set task 's' for saving.")
