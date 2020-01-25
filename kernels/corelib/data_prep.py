@@ -10,10 +10,11 @@ class DataLoader:
     """
     Class provide method constructor for unpacking files
 
-    """    
-    def __init__(self, path, index_col, dtype, coding, path_ex, file_list):
+    """
+    def __init__(self, path, sep, index_col, dtype, coding, path_ex, file_list):
 
         self.path = path
+        self.sep = sep
         self.index_col = index_col
         self.dtype = dtype
         self.coding = coding
@@ -27,7 +28,7 @@ class DataLoader:
 
         """
         try:
-            data_for_opening = pd.read_csv(file_open, index_col=self.index_col, dtype=self.dtype)
+            data_for_opening = pd.read_csv(file_open, sep = self.sep, index_col=self.index_col, dtype=self.dtype)
         except:
             print("'{}' is wrong name for parsing of column".format(self.index_col))
             data_for_opening = None
@@ -63,8 +64,7 @@ class zipLoader(DataLoader):
                         filename = os.path.splitext(file_name)[0]
                         return [filename, super(zipLoader, self).extractor(file_open)]
 
-
-def loader(path=DATA_PATH, index_col=False, dtype=None, coding=None):
+def loader(path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=None):
     
     """
     Unpack kaggle data, then return pandas dataframe (function prototype)
@@ -73,6 +73,9 @@ def loader(path=DATA_PATH, index_col=False, dtype=None, coding=None):
     ----------
     :param path: current path to folder with data
         string
+
+    :param sep: Delimiter to use
+        str, default ','
     
     :param index_col: Column to use as the row labels of the DataFrame, either given as string name or column index.
     If a sequence of int / str is given, a MultiIndex is used.
@@ -99,7 +102,6 @@ def loader(path=DATA_PATH, index_col=False, dtype=None, coding=None):
     - rewrite extractor for checking different headers in different files
     - Code/decode checking for .zip
     - Search deeper in folder
-    - diferent delimiters
     - other formats
     - time stamps converter
 
@@ -109,8 +111,8 @@ def loader(path=DATA_PATH, index_col=False, dtype=None, coding=None):
     for file_list in os.listdir(path):
         path_ex = os.path.join(path, file_list)
         data_ext = {
-            '.csv': csvLoader(path, index_col, dtype, coding, path_ex, file_list),
-            '.zip': zipLoader(path, index_col, dtype, coding, path_ex, file_list)
+            '.csv': csvLoader(path, sep, index_col, dtype, coding, path_ex, file_list),
+            '.zip': zipLoader(path, sep, index_col, dtype, coding, path_ex, file_list)
         }
         loaded = None
 
