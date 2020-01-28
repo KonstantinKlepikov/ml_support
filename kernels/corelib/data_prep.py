@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
+import csv
 from zipfile import ZipFile
 
 DATA_PATH = os.path.realpath('../input')
@@ -28,7 +29,7 @@ class DataLoader:
 
         """
         try:
-            data_for_opening = pd.read_csv(file_open, sep = self.sep, index_col=self.index_col, dtype=self.dtype)
+            data_for_opening = pd.read_csv(file_open, sep=self.sep, index_col=self.index_col, dtype=self.dtype)
         except:
             print("'{}' is wrong name for parsing of column".format(self.index_col))
             data_for_opening = None
@@ -63,6 +64,19 @@ class zipLoader(DataLoader):
                     with g.open(file_name) as file_open:
                         filename = os.path.splitext(file_name)[0]
                         return [filename, super(zipLoader, self).extractor(file_open)]
+
+class csvViewer(DataLoader):
+
+    """
+    Class provide method for preview .csv files
+
+    """
+    def viewer(self):
+        with open(self.path_ex, 'r', encoding=self.coding) as file_open:
+            reader = csv.reader(file_open, delimiter=self.sep)
+            for i, row in enumerate(reader):
+                print(row)
+                if(i>=5): break
 
 def loader(path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=None):
     
