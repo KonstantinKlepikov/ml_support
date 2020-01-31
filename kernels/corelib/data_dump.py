@@ -1,7 +1,6 @@
 import shelve
 import os
-
-DUMP_PATH = '../kernels/dumped_data/'
+from core_paths import DUMP_PATH
 
 class DataDump:
 
