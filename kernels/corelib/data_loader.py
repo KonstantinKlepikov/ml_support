@@ -3,15 +3,14 @@ import pandas as pd
 import os
 import csv
 from zipfile import ZipFile
-from core_paths import DATA_PATH
+from .core_paths import DATA_PATH
 
 class DataLoader:
     """
     Class provide method constructor for unpacking files
 
     """
-    def __init__(self, path, coding, path_ex, file_list):
-        self.path = path
+    def __init__(self, coding, path_ex, file_list):
         self.coding = coding
         self.path_ex = path_ex
         self.file_list = file_list
@@ -55,14 +54,14 @@ class DataExtractor(DataHandler):
         self.index_col = index_col
         self.dtype = dtype
 
-    def extractor(self):
+    def go_to_data(self):
         """
         Check the headers of .csv file for compliance with the index. If index is wrong, None is returned
 
         """
         try:
             data_for_opening = pd.read_csv(self.file_open, sep=self.sep, index_col=self.index_col, dtype=self.dtype)
-        except:
+        except TypeError:
             print("'{}' is wrong name for parsing of column".format(self.index_col))
             data_for_opening = None
             
@@ -70,20 +69,22 @@ class DataExtractor(DataHandler):
 
 class DataViewer(DataHandler):
 
-    def viewer(self):
+    def go_to_data(self):
         """
         Viewe first five strings of .csv file
 
         """
         try:
+            print(self.file_open)
+            print(self.sep)
             reader = csv.reader(self.file_open, delimiter=self.sep)
             for i, row in enumerate(reader):
                 print(row)
                 if(i>=5): break
-        except:
+        except TypeError:
             print("File cant be opened")
 
-def loader(mode, path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=None):    
+def loader(mode, path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=None):
     """
     Unpack kaggle data, then return pandas dataframe (function prototype)
     
@@ -129,22 +130,22 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=No
     for file_list in os.listdir(path):
         path_ex = os.path.join(path, file_list)
         data_ext = {
-            '.csv': csvLoader(path, coding, path_ex, file_list),
-            '.zip': zipLoader(path, coding, path_ex, file_list)
+            '.csv': csvLoader(coding, path_ex, file_list),
+            '.zip': zipLoader(coding, path_ex, file_list)
         }
         loaded = None
 
         for item in data_ext.items():
             if os.path.splitext(path_ex)[1] == item[0]:
-                csvload = item[1]
+                # csvload = item[1]
         
-                loaded = csvload.dictLoader()
+                loaded = item[1].dictLoader()
                 if loaded:
                     if mode == 'extract':
                         mode_ext = DataExtractor(sep, loaded[1], index_col, dtype)
-                        data_dict[loaded[0]] = mode_ext.extractor()
+                        data_dict[loaded[0]] = mode_ext.go_to_data()
                     elif mode == 'view':
                         mode_ext = DataViewer(sep, loaded[1])
-                        mode_ext.viewer()
+                        mode_ext.go_to_data()
 
     return data_dict

@@ -1,6 +1,6 @@
 import os
 import matplotlib.pyplot as plt
-from core_paths import IMAGES_PATH
+from .core_paths import IMAGES_PATH
 
 def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
 

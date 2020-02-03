@@ -1,6 +1,6 @@
 import shelve
 import os
-from core_paths import DUMP_PATH
+from .core_paths import DUMP_PATH
 
 class DataDump:
 
