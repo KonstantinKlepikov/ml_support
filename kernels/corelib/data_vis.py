@@ -1,12 +1,8 @@
 import os
 import matplotlib.pyplot as plt
-
-PROJECT_ROOT_DIR = "."
-CHAPTER_ID = "exitimg"
-IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images", CHAPTER_ID)
+from .core_paths import IMAGES_PATH
 
 def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
-
     """
     Save ploting by matplotlib images
     
