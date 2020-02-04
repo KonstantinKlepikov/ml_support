@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 def reduce_mem_usage(df, verbose=True):
-
     """
     Reduce numeric 
     
@@ -55,7 +54,6 @@ def reduce_mem_usage(df, verbose=True):
 
 
 def reduce_obj_mem_usage(df, verbose=True):
-
     """
     Reduce object. Return new data frame, containing only columns with dtype object.
     Columns with number of unique values, that is no more than 50%, recieve subtype category
@@ -101,7 +99,6 @@ def reduce_obj_mem_usage(df, verbose=True):
 
 
 def search_func(data, *cols):
-
     """
     Function return dictionary of the form: 'value': index, that can be used for 
     mapping in ordered feature encoding estimators

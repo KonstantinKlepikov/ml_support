@@ -3,7 +3,6 @@ import os
 from .core_paths import DUMP_PATH
 
 class DataDump:
-
     """
     Class provide method constructor for serialise data
 
@@ -15,13 +14,11 @@ class DataDump:
         self.ospath= os.path.realpath(DUMP_PATH + path)
 
 class ShelveDump(DataDump):
-
     """
     Class provide methods for save and load data with shelve
     
     """
     def save(self):
-
         with shelve.open(self.ospath) as s:
             for k, v in enumerate(self.dump_list):
                 try:
@@ -31,7 +28,6 @@ class ShelveDump(DataDump):
                     print('Object {} not dumped - an error occurred'.format(k))
 
     def load(self):
-
         dict_of_objects = {}
         with shelve.open(self.ospath) as o:
             for k, v in o.items():
@@ -39,7 +35,6 @@ class ShelveDump(DataDump):
             return dict_of_objects.values()
 
 def dumper(dump_list=None, path='default', method='shelve', task=None):
-
     """
     Save and open data with serialise tools. 
     Now available:

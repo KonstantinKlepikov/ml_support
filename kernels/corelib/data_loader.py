@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import csv
+import codecs
 from zipfile import ZipFile
 from .core_paths import DATA_PATH
 
@@ -14,84 +15,99 @@ class DataLoader:
         self.coding = coding
         self.path_ex = path_ex
         self.file_list = file_list
+        self.handler = None
+
 
 class csvLoader(DataLoader):
     """
-    Class provide method for open *.csv files and save it to dict of DataFrame objects
+    Class provide method for open *.csv file
 
     """
     def dictLoader(self):
         with open(self.path_ex, 'r', encoding=self.coding) as file_open:
             filename = os.path.splitext(self.file_list)[0]
-            return [filename, file_open]
+            if self.handler:
+                result = self.handler.go_to_data(file_open)
+                return [filename, result]
+
 
 class zipLoader(DataLoader):
     """
-    Class provide method for unpac *.csv files from .zip archive and save it to dict of DataFrame objects
+    Class provide method for unpac .zip archive and open *.csv files
 
     """
     def dictLoader(self):
         with ZipFile(self.path_ex, 'r') as g:
             for file_name in g.namelist():
                 if file_name.endswith('.csv'):
-                    with g.open(file_name) as file_open:
+                    with g.open(file_name, 'r') as file_open:
                         filename = os.path.splitext(file_name)[0]
-                        return [filename, file_open]
+                        if self.handler:
+                            result = self.handler.go_to_data(file_open)
+                            return [filename, result]
+
 
 class DataHandler:
     """
-    Class provide method constructor for display data
+    Class provide method constructor for display and extract .csv data
 
     """
-    def __init__(self, sep, file_open):
+    def __init__(self, sep):
         self.sep = sep
-        self.file_open = file_open
+
 
 class DataExtractor(DataHandler):
+    """
+    Class provide method for extract .csv data to Pandas dataframe
 
-    def __init__(self, sep, file_open, index_col, dtype):
-        super().__init__(sep, file_open)
+    """
+
+    def __init__(self, sep, index_col, dtype):
+        super().__init__(sep)
         self.index_col = index_col
         self.dtype = dtype
 
-    def go_to_data(self):
-        """
-        Check the headers of .csv file for compliance with the index. If index is wrong, None is returned
-
-        """
+    def go_to_data(self, file_open):
         try:
-            data_for_opening = pd.read_csv(self.file_open, sep=self.sep, index_col=self.index_col, dtype=self.dtype)
+            data_for_opening = pd.read_csv(file_open, sep=self.sep, index_col=self.index_col, dtype=self.dtype)
         except TypeError:
             print("'{}' is wrong name for parsing of column".format(self.index_col))
             data_for_opening = None
             
         return data_for_opening
 
+
 class DataViewer(DataHandler):
+    """
+    Class provide method for view .csv data
 
-    def go_to_data(self):
-        """
-        Viewe first five strings of .csv file
+    """
 
-        """
-        try:
-            print(self.file_open)
-            print(self.sep)
-            reader = csv.reader(self.file_open, delimiter=self.sep)
+    def go_to_data(self, file_open):
+
+        def _view_iter(reader):
             for i, row in enumerate(reader):
                 print(row)
                 if(i>=5): break
+        try:
+            reader = csv.reader(codecs.iterdecode(file_open, 'utf-8'), delimiter=self.sep)
+            _view_iter(reader)
         except TypeError:
-            print("File cant be opened")
+            reader = csv.reader(file_open, delimiter=self.sep)
+            _view_iter(reader)
+
 
 def loader(mode, path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=None):
     """
-    Unpack kaggle data, then return pandas dataframe (function prototype)
+    Unpack kaggle data, view .csv files or return pandas dataframe
     
     Parameters
     ----------
-    :param path: current path to folder with data
+    :param mode: mode of function. Available 'extract' or 'view'
         string
+
+    :param path: current path to folder with data
+        string, default DATA_PATH constant
 
     :param sep: Delimiter to use
         str, default ','
@@ -113,7 +129,7 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=No
     Return
     ------
 
-    Dict with pandas data frame objects
+    Dict with pandas data frame objects for 'extract' mode or dict of None for 'view' mode
 
     Future
     ------
@@ -126,9 +142,17 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=No
 
     """
     data_dict = {}
+    #insert new method of data observation
+    if mode == 'extract':
+        call_to_ext = DataExtractor(sep, index_col, dtype)
+    elif mode == 'view':
+        call_to_ext = DataViewer(sep)
+    else:
+        print('Wrong mode')
 
     for file_list in os.listdir(path):
         path_ex = os.path.join(path, file_list)
+        #inser new method of files opening
         data_ext = {
             '.csv': csvLoader(coding, path_ex, file_list),
             '.zip': zipLoader(coding, path_ex, file_list)
@@ -137,15 +161,9 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=No
 
         for item in data_ext.items():
             if os.path.splitext(path_ex)[1] == item[0]:
-                # csvload = item[1]
-        
-                loaded = item[1].dictLoader()
-                if loaded:
-                    if mode == 'extract':
-                        mode_ext = DataExtractor(sep, loaded[1], index_col, dtype)
-                        data_dict[loaded[0]] = mode_ext.go_to_data()
-                    elif mode == 'view':
-                        mode_ext = DataViewer(sep, loaded[1])
-                        mode_ext.go_to_data()
+                stack = item[1]
+                stack.handler = call_to_ext
+                loaded = stack.dictLoader()
+                data_dict[loaded[0]] = loaded[1]
 
     return data_dict

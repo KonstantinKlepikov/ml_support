@@ -3,7 +3,6 @@ import pandas as pd
 from typing import List
 
 class DoubleValidationEncoderNumerical:
-
     """
     Encoder with validation within
 
