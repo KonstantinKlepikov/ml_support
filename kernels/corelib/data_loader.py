@@ -97,7 +97,7 @@ class DataViewer(DataHandler):
             _view_iter(reader)
 
 
-def loader(mode, path=DATA_PATH, sep=',', index_col=False, dtype=None, coding=None):
+def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=None):
     """
     Unpack kaggle data, view .csv files or return pandas dataframe
     
