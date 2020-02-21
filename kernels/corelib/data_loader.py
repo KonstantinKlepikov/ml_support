@@ -85,16 +85,10 @@ class DataViewer(DataHandler):
 
     def go_to_data(self, file_open):
 
-        def _view_iter(reader):
-            for i, row in enumerate(reader):
-                print(row)
-                if(i>=5): break
-        try:
-            reader = csv.reader(codecs.iterdecode(file_open, 'utf-8'), delimiter=self.sep)
-            _view_iter(reader)
-        except TypeError:
-            reader = csv.reader(file_open, delimiter=self.sep)
-            _view_iter(reader)
+        for num, line in enumerate(file_open):
+            print(line.rstrip())
+            if num >= 5: break
+        # TODO: check for byte
 
 
 def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=None):
@@ -103,7 +97,8 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=Non
     
     Parameters
     ----------
-    :param mode: mode of function. Available 'extract' or 'view'
+    :param mode: mode of function. Available 'extract' for extracting data into dict of objects
+    or 'view' for show first 5 strings of data files
         string
 
     :param path: current path to folder with data
@@ -112,14 +107,16 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=Non
     :param sep: Delimiter to use
         str, default ','
     
-    :param index_col: Column to use as the row labels of the DataFrame, either given as string name or column index.
+    :param index_col: Column to use as the row labels of the DataFrame,
+    either given as string name or column index.
     If a sequence of int / str is given, a MultiIndex is used.
+
     Note: index_col=False can be used to force pandas to not use the first column as the index, e.g. when 
-    you have a malformed file with delimiters at the end of each line. 
+    you have a malformed file with delimiters at the end of each line.
         int, str, sequence of int / str, or False, default False
 
-    :param dtype: Data type for data or columns. E.g. {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’} 
-    Use str or object together with suitable na_values settings to preserve and not interpret dtype. 
+    :param dtype: Data type for data or columns. E.g. {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+    Use str or object together with suitable na_values settings to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD of dtype conversion
         dict, default None
 
