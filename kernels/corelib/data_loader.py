@@ -52,9 +52,10 @@ class DataHandler:
     Class provide method constructor for display and extract .csv data
 
     """
-    def __init__(self, sep):
-        self.sep = sep
-
+    def __init__(self):
+        pass
+        # TODO get list of available files in directory (method)
+        # TODO subclass for displaylist of available files
 
 class DataExtractor(DataHandler):
     """
@@ -63,7 +64,7 @@ class DataExtractor(DataHandler):
     """
 
     def __init__(self, sep, index_col, dtype):
-        super().__init__(sep)
+        self.sep = sep
         self.index_col = index_col
         self.dtype = dtype
 
@@ -86,12 +87,15 @@ class DataViewer(DataHandler):
     def go_to_data(self, file_open):
 
         for num, line in enumerate(file_open):
-            print(line.rstrip())
+            try:
+                data = line.rstrip().decode()
+                print(data)
+            except (UnicodeDecodeError, AttributeError):
+                print(line.rstrip())
             if num >= 5: break
-        # TODO: check for byte
 
 
-def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=None):
+def loader(mode, path=DATA_PATH, list_of_files=None, sep=',', index_col=None, dtype=None, coding=None):
     """
     Unpack kaggle data, view .csv files or return pandas dataframe
     
@@ -101,11 +105,14 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=Non
     or 'view' for show first 5 strings of data files
         string
 
+    :param list_of_files: list of files to unpack, looks like ['this.csv', 'that.csv']
+        list of strings, default None
+
     :param path: current path to folder with data
         string, default DATA_PATH constant
 
     :param sep: Delimiter to use
-        str, default ','
+        string, default ','
     
     :param index_col: Column to use as the row labels of the DataFrame,
     either given as string name or column index.
@@ -120,7 +127,7 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=Non
     If converters are specified, they will be applied INSTEAD of dtype conversion
         dict, default None
 
-    :param encoding: Encoding to use for UTF when reading/writing (ex. ‘utf-8’)
+    :param coding: Encoding to - use for UTF when reading/writing (ex. ‘utf-8’)
         str, default None
 
     Return
@@ -143,7 +150,7 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=Non
     if mode == 'extract':
         call_to_ext = DataExtractor(sep, index_col, dtype)
     elif mode == 'view':
-        call_to_ext = DataViewer(sep)
+        call_to_ext = DataViewer()
     else:
         print('Wrong mode')
 
