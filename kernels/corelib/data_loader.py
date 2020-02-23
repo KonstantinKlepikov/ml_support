@@ -9,7 +9,6 @@ from .core_paths import DATA_PATH
 class DataLoader:
     """
     Class provide method constructor for unpacking files
-
     """
     def __init__(self, coding, path_ex, file_list):
         self.coding = coding
@@ -17,11 +16,9 @@ class DataLoader:
         self.file_list = file_list
         self.handler = None
 
-
 class csvLoader(DataLoader):
     """
     Class provide method for open *.csv file
-
     """
     def dictLoader(self):
         with open(self.path_ex, 'r', encoding=self.coding) as file_open:
@@ -30,11 +27,9 @@ class csvLoader(DataLoader):
                 result = self.handler.go_to_data(file_open)
                 return [filename, result]
 
-
 class zipLoader(DataLoader):
     """
     Class provide method for unpac .zip archive and open *.csv files
-
     """
     def dictLoader(self):
         with ZipFile(self.path_ex, 'r') as g:
@@ -50,19 +45,36 @@ class zipLoader(DataLoader):
 class DataHandler:
     """
     Class provide method constructor for display and extract .csv data
-
     """
     def __init__(self):
         pass
-        # TODO get list of available files in directory (method)
-        # TODO subclass for displaylist of available files
+        # TODO subclass for display list of available files
+
+    def source_tree(self, path):
+        """
+        Looking for source tree and return dict, where keys are file or directory name, vakues are path to file or dir
+        """
+        names = os.listdir(os.path.realpath(path))
+        source_td = {}
+
+        for name in names:
+
+            fullname = os.path.join(os.path.realpath(path), name)
+            if os.path.isfile(fullname):
+                source_td[name] = fullname
+            elif os.path.isdir(fullname):
+                source_tds = {}
+                subpath = os.path.join(os.path.realpath(path), name)
+                if self.source_tree(subpath):
+                    source_tds[name] = self.source_tree(subpath)
+                source_td[name] = source_tds
+
+        return source_td
 
 class DataExtractor(DataHandler):
     """
     Class provide method for extract .csv data to Pandas dataframe
-
     """
-
     def __init__(self, sep, index_col, dtype):
         self.sep = sep
         self.index_col = index_col
@@ -77,13 +89,10 @@ class DataExtractor(DataHandler):
             
         return data_for_opening
 
-
 class DataViewer(DataHandler):
     """
     Class provide method for view .csv data
-
     """
-
     def go_to_data(self, file_open):
 
         for num, line in enumerate(file_open):
@@ -95,39 +104,75 @@ class DataViewer(DataHandler):
             if num >= 5: break
 
 
-def loader(mode, path=DATA_PATH, list_of_files=None, sep=',', index_col=None, dtype=None, coding=None):
+def loader(mode, path=DATA_PATH, data_for_load=None, sep=',', index_col=None, dtype=None, coding=None):
     """
     Unpack kaggle data, view .csv files or return pandas dataframe
     
     Parameters
     ----------
-    :param mode: mode of function. Available 'extract' for extracting data into dict of objects
+
+    :param mode:
+    mode of function. Available 'extract' for extracting data into dict of objects
     or 'view' for show first 5 strings of data files
         string
 
-    :param list_of_files: list of files to unpack, looks like ['this.csv', 'that.csv']
-        list of strings, default None
-
-    :param path: current path to folder with data
+    :param path:
+    current path to folder with data
         string, default DATA_PATH constant
 
-    :param sep: Delimiter to use
+    :param data_for_load:
+    dict ehere keys are file names and values are dicts of parameters.
+    Looks like {'this.csv': {'sep': ',', 'coding': 'utf-8'}} etc.
+    If None all files are loaded wit default parameters.
+        dict, default None
+
+    For data_for_load parameters are available:
+
+    :sep:
+    Delimiter to use
+        string, default ','
+
+    :index_col:
+    Column to use as the row labels of the DataFrame,
+    either given as string name or column index.
+    If a sequence of int / str is given, a MultiIndex is used.
+    Note: index_col=False can be used to force pandas to not use the first column as the index, e.g. when 
+    you have a malformed file with delimiters at the end of each line.
+        int, str, sequence of int / str, or False, default False
+
+    :dtype: Data type for data or columns. E.g. {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+    Use str or object together with suitable na_values settings to preserve and not interpret dtype.
+    If converters are specified, they will be applied INSTEAD of dtype conversion
+        dict, default None
+
+    :coding: Encoding to - use for UTF when reading/writing (ex. ‘utf-8’)
+        str, default None
+
+
+
+
+    :param sep:
+    Delimiter to use
         string, default ','
     
-    :param index_col: Column to use as the row labels of the DataFrame,
+    :param index_col:    
+    Column to use as the row labels of the DataFrame,
     either given as string name or column index.
+
     If a sequence of int / str is given, a MultiIndex is used.
 
     Note: index_col=False can be used to force pandas to not use the first column as the index, e.g. when 
     you have a malformed file with delimiters at the end of each line.
         int, str, sequence of int / str, or False, default False
 
-    :param dtype: Data type for data or columns. E.g. {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+    :param dtype: 
+    Data type for data or columns. E.g. {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
     Use str or object together with suitable na_values settings to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD of dtype conversion
         dict, default None
 
-    :param coding: Encoding to - use for UTF when reading/writing (ex. ‘utf-8’)
+    :param coding: 
+    Encoding to - use for UTF when reading/writing (ex. ‘utf-8’)
         str, default None
 
     Return
@@ -143,7 +188,6 @@ def loader(mode, path=DATA_PATH, list_of_files=None, sep=',', index_col=None, dt
     - Search deeper in folder
     - other formats
     - time stamps converter
-
     """
     data_dict = {}
     #insert new method of data observation
