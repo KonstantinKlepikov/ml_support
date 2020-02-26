@@ -26,7 +26,7 @@ class csvLoader(DataLoader):
             filename = os.path.splitext(self.file_n)[0]
             if self.handler:
                 result = self.handler.go_to_data(file_open)
-                return [filename, result]
+                return filename, result
 
 class zipLoader(DataLoader):
     """
@@ -40,7 +40,7 @@ class zipLoader(DataLoader):
                         filename = os.path.splitext(file_name)[0]
                         if self.handler:
                             result = self.handler.go_to_data(file_open)
-                            return [filename, result]
+                            return filename, result
 
 
 class DataHandler:
@@ -106,7 +106,8 @@ class DataSourcer(DataHandler):
     """
     def go_to_data(self, path):
         s_tree = super(DataSourcer, self).source_tree(path)
-        print(s_tree)
+        for key, val in s_tree.items():
+            print('{0} ..... {1}'.format(key, val))
 
 
 def loader(mode, path=DATA_PATH, data_for_load=None, sep=',', index_col=None, dtype=None, coding=None):
@@ -161,25 +162,21 @@ def loader(mode, path=DATA_PATH, data_for_load=None, sep=',', index_col=None, dt
     Future
     ------
 
-    - rewrite extractor for checking different headers in different files
+    - checking different parameters for different files
     - Code/decode checking for .zip
     - other formats
     - time stamps converter
     """
-    data_dict = {}
-
-    def load_process(source, for_load):
+    def load_process(source, for_load, coding, mode, call_to_ext):
+        """
+        Function for load files with different scenarius
+        """
+        data_dict = {}
         try:
             intercept = list(set(source.keys()).intersection(set(for_load.keys())))
         except AttributeError:
             intercept = list(source.keys())
-        return intercept
-
-    #insert new method of data observation
-    if mode == 'extract':
-        call_to_ext = DataExtractor(sep, index_col, dtype)
-        source = call_to_ext.source_tree(path)
-        intercept = load_process(source, data_for_load)
+        # return intercept
 
         for file_n in intercept:
             path_ex = source[file_n]
@@ -195,21 +192,28 @@ def loader(mode, path=DATA_PATH, data_for_load=None, sep=',', index_col=None, dt
                     stack = item[1]
                     stack.handler = call_to_ext
                     loaded = stack.dictLoader()
-                    data_dict[loaded[0]] = loaded[1]
 
+                    if mode == 'extract':
+                        data_dict[loaded[0]] = loaded[1]
+
+        if data_dict:
+            return data_dict
+
+    #insert new method of data observation
+    if mode == 'extract':
+        call_to_ext = DataExtractor(sep, index_col, dtype)
+        source = call_to_ext.source_tree(path)
+        data_dict = load_process(source, data_for_load, coding, mode, call_to_ext)
         return data_dict
 
     elif mode == 'view':
         call_to_ext = DataViewer()
         source = call_to_ext.source_tree(path)
-        intercept = load_process(source, data_for_load)
-        for file_n in intercept:
-            path_ex = source[file_n]
-            call_to_ext.go_to_data(intercept)
+        load_process(source, data_for_load, coding, mode, call_to_ext)
 
     elif mode == 'tree':
-        call_to_ext = DataViewer()
-        for key, val in call_to_ext.source_tree(path).items():
-            print('{0} ..... {1}'.format(key, val))
+        call_to_ext = DataSourcer()
+        call_to_ext.go_to_data(path)
+        
     else:
         print('Wrong mode')
