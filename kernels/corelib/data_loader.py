@@ -4,37 +4,33 @@ import os
 import csv
 import codecs
 from zipfile import ZipFile
-from .core_paths import DATA_PATH
+from .core_paths import DATA_PATH, DATA_EXT
+
 
 class DataLoader:
     """
     Class provide method constructor for unpacking files
-
     """
-    def __init__(self, coding, path_ex, file_list):
+    def __init__(self, coding, path_ex, file_n):
         self.coding = coding
         self.path_ex = path_ex
-        self.file_list = file_list
+        self.file_n = file_n
         self.handler = None
-
 
 class csvLoader(DataLoader):
     """
     Class provide method for open *.csv file
-
     """
     def dictLoader(self):
         with open(self.path_ex, 'r', encoding=self.coding) as file_open:
-            filename = os.path.splitext(self.file_list)[0]
+            filename = os.path.splitext(self.file_n)[0]
             if self.handler:
                 result = self.handler.go_to_data(file_open)
-                return [filename, result]
-
+                return filename, result
 
 class zipLoader(DataLoader):
     """
     Class provide method for unpac .zip archive and open *.csv files
-
     """
     def dictLoader(self):
         with ZipFile(self.path_ex, 'r') as g:
@@ -44,26 +40,40 @@ class zipLoader(DataLoader):
                         filename = os.path.splitext(file_name)[0]
                         if self.handler:
                             result = self.handler.go_to_data(file_open)
-                            return [filename, result]
+                            return filename, result
 
 
 class DataHandler:
     """
     Class provide method constructor for display and extract .csv data
-
     """
-    def __init__(self, sep):
-        self.sep = sep
+    def __init__(self):
+        pass
 
+    def source_tree(self, path, _ext=DATA_EXT):
+        """
+        Looking for source tree and return dict, where keys are file or directory name, vakues are path to file or dir
+        """
+        names = os.listdir(os.path.realpath(path))
+        std = {}
+
+        for name in names:
+            fullname = os.path.join(os.path.realpath(path), name)
+            if os.path.isfile(fullname):
+                if os.path.splitext(fullname)[1] in _ext:
+                    std[name] = fullname
+            elif os.path.isdir(fullname):
+                if self.source_tree(fullname):
+                    std.update(self.source_tree(fullname))
+
+        return std
 
 class DataExtractor(DataHandler):
     """
     Class provide method for extract .csv data to Pandas dataframe
-
     """
-
     def __init__(self, sep, index_col, dtype):
-        super().__init__(sep)
+        self.sep = sep
         self.index_col = index_col
         self.dtype = dtype
 
@@ -76,54 +86,72 @@ class DataExtractor(DataHandler):
             
         return data_for_opening
 
-
 class DataViewer(DataHandler):
     """
     Class provide method for view .csv data
-
     """
-
     def go_to_data(self, file_open):
 
-        def _view_iter(reader):
-            for i, row in enumerate(reader):
-                print(row)
-                if(i>=5): break
-        try:
-            reader = csv.reader(codecs.iterdecode(file_open, 'utf-8'), delimiter=self.sep)
-            _view_iter(reader)
-        except TypeError:
-            reader = csv.reader(file_open, delimiter=self.sep)
-            _view_iter(reader)
+        for num, line in enumerate(file_open):
+            try:
+                data = line.rstrip().decode()
+                print(data)
+            except (UnicodeDecodeError, AttributeError):
+                print(line.rstrip())
+            if num >= 5: break
+
+class DataSourcer(DataHandler):
+    """
+    Class provide method for view list of files in a path
+    """
+    def go_to_data(self, path):
+        s_tree = super(DataSourcer, self).source_tree(path)
+        for key, val in s_tree.items():
+            print('{0} ..... {1}'.format(key, val))
 
 
-def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=None):
+def loader(mode, path=DATA_PATH, data_for_load=None, sep=',', index_col=None, dtype=None, coding=None):
     """
     Unpack kaggle data, view .csv files or return pandas dataframe
     
     Parameters
     ----------
-    :param mode: mode of function. Available 'extract' or 'view'
+
+    :param mode:
+    Mode of function. Available 'extract' for extracting data into dict of objects
+    or 'view' for show first 5 strings of data files
         string
 
-    :param path: current path to folder with data
+    :param path:
+    Current path to folder with data
         string, default DATA_PATH constant
 
-    :param sep: Delimiter to use
-        str, default ','
-    
-    :param index_col: Column to use as the row labels of the DataFrame, either given as string name or column index.
+    :param data_for_load:
+    Dict where keys are file names and values are dicts of parameters.
+    Looks like {'this.csv': {'sep': ',', 'coding': 'utf-8'}} etc.
+    If None all files are loaded wit default parameters.
+        dict, default None
+
+    For data_for_load parameters are available:
+
+    :sep:
+    Delimiter to use
+        string, default ','
+
+    :index_col:
+    Column to use as the row labels of the DataFrame,
+    either given as string name or column index.
     If a sequence of int / str is given, a MultiIndex is used.
     Note: index_col=False can be used to force pandas to not use the first column as the index, e.g. when 
-    you have a malformed file with delimiters at the end of each line. 
+    you have a malformed file with delimiters at the end of each line.
         int, str, sequence of int / str, or False, default False
 
-    :param dtype: Data type for data or columns. E.g. {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’} 
-    Use str or object together with suitable na_values settings to preserve and not interpret dtype. 
+    :dtype: Data type for data or columns. E.g. {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+    Use str or object together with suitable na_values settings to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD of dtype conversion
         dict, default None
 
-    :param encoding: Encoding to use for UTF when reading/writing (ex. ‘utf-8’)
+    :coding: Encoding to - use for UTF when reading/writing (ex. ‘utf-8’)
         str, default None
 
     Return
@@ -134,36 +162,58 @@ def loader(mode, path=DATA_PATH, sep=',', index_col=None, dtype=None, coding=Non
     Future
     ------
 
-    - rewrite extractor for checking different headers in different files
+    - checking different parameters for different files
     - Code/decode checking for .zip
-    - Search deeper in folder
     - other formats
     - time stamps converter
-
     """
-    data_dict = {}
+    def load_process(source, for_load, coding, mode, call_to_ext):
+        """
+        Function for load files with different scenarius
+        """
+        data_dict = {}
+        try:
+            intercept = list(set(source.keys()).intersection(set(for_load.keys())))
+        except AttributeError:
+            intercept = list(source.keys())
+        # return intercept
+
+        for file_n in intercept:
+            path_ex = source[file_n]
+            #inser new method of files opening
+            data_ext = {
+                '.csv': csvLoader(coding, path_ex, file_n),
+                '.zip': zipLoader(coding, path_ex, file_n)
+            }
+            loaded = None
+
+            for item in data_ext.items():
+                if os.path.splitext(path_ex)[1] == item[0]:
+                    stack = item[1]
+                    stack.handler = call_to_ext
+                    loaded = stack.dictLoader()
+
+                    if mode == 'extract':
+                        data_dict[loaded[0]] = loaded[1]
+
+        if data_dict:
+            return data_dict
+
     #insert new method of data observation
     if mode == 'extract':
         call_to_ext = DataExtractor(sep, index_col, dtype)
+        source = call_to_ext.source_tree(path)
+        data_dict = load_process(source, data_for_load, coding, mode, call_to_ext)
+        return data_dict
+
     elif mode == 'view':
-        call_to_ext = DataViewer(sep)
+        call_to_ext = DataViewer()
+        source = call_to_ext.source_tree(path)
+        load_process(source, data_for_load, coding, mode, call_to_ext)
+
+    elif mode == 'tree':
+        call_to_ext = DataSourcer()
+        call_to_ext.go_to_data(path)
+        
     else:
         print('Wrong mode')
-
-    for file_list in os.listdir(path):
-        path_ex = os.path.join(path, file_list)
-        #inser new method of files opening
-        data_ext = {
-            '.csv': csvLoader(coding, path_ex, file_list),
-            '.zip': zipLoader(coding, path_ex, file_list)
-        }
-        loaded = None
-
-        for item in data_ext.items():
-            if os.path.splitext(path_ex)[1] == item[0]:
-                stack = item[1]
-                stack.handler = call_to_ext
-                loaded = stack.dictLoader()
-                data_dict[loaded[0]] = loaded[1]
-
-    return data_dict

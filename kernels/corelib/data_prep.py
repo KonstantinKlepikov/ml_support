@@ -20,7 +20,6 @@ def reduce_mem_usage(df, verbose=True):
 
     - optimisation by transfer float to int
     - reduce objects
-
     """
     numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
     start_mem = df.memory_usage().sum() / 1024**2
@@ -60,7 +59,9 @@ def reduce_obj_mem_usage(df, verbose=True):
     
     Parameters
     ----------
-    :param df: pandas data frame
+
+    :param df: 
+    Pandas data frame
         pd.DataFrame object
 
     Return
@@ -73,8 +74,7 @@ def reduce_obj_mem_usage(df, verbose=True):
     ------
 
     - all columns return
-
-    """    
+    """
     df = df.select_dtypes(include=['object']).copy()
 
     df.describe()
@@ -105,17 +105,19 @@ def search_func(data, *cols):
     
     Parameters
     ----------
-    :param data: pandas data frame
+
+    :param data: 
+    Pandas data frame
         pd.DataFrame object
     
-    :param cols: list of columns, where function search for unical ordered value
+    :param cols: 
+    List of columns, where function search for unical ordered value
         list, tuple
 
     Return
     ------
 
-    List of dicts, where keys are names of values for ordered encoding, and values are position in order
-    
+    List of dicts, where keys are names of values for ordered encoding, and values are position in order    
     """
     full_map = []
 

@@ -5,7 +5,6 @@ from .core_paths import DUMP_PATH
 class DataDump:
     """
     Class provide method constructor for serialise data
-
     """
     def __init__(self, dump_list, path):
 
@@ -16,7 +15,6 @@ class DataDump:
 class ShelveDump(DataDump):
     """
     Class provide methods for save and load data with shelve
-    
     """
     def save(self):
         with shelve.open(self.ospath) as s:
@@ -34,6 +32,7 @@ class ShelveDump(DataDump):
                 dict_of_objects[k] = v
             return dict_of_objects.values()
 
+
 def dumper(dump_list=None, path='default', method='shelve', task=None):
     """
     Save and open data with serialise tools. 
@@ -42,19 +41,23 @@ def dumper(dump_list=None, path='default', method='shelve', task=None):
     
     Parameters
     ----------
-    :param dump_list: list or tuple with objects for saving
+
+    :param dump_list: 
+    List or tuple with objects for saving
         list, tuple
     
-    :param path: current path name to folder with data
+    :param path: 
+    Current path name to folder with data
         string, default 'default'
 
-    :param method: method of serialisation
+    :param method: 
+    Method of serialisation
         string, default 'shelve'
 
-    :param task: type of operation. 's' for saving, 'o' for opening
+    :param task: 
+    Type of operation. 's' for saving, 'o' for opening
         string, default None
-
-    """    
+    """
     if method == 'shelve':
         dumped = ShelveDump(dump_list, path)
     else:
