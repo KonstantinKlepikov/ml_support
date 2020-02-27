@@ -23,10 +23,9 @@ class csvLoader(DataLoader):
     """
     def dictLoader(self):
         with open(self.path_ex, 'r', encoding=self.coding) as file_open:
-            filename = os.path.splitext(self.file_n)[0]
             if self.handler:
                 result = self.handler.go_to_data(file_open)
-                return filename, result
+                return self.file_n, result
 
 class zipLoader(DataLoader):
     """
@@ -37,10 +36,9 @@ class zipLoader(DataLoader):
             for file_name in g.namelist():
                 if file_name.endswith('.csv'):
                     with g.open(file_name, 'r') as file_open:
-                        filename = os.path.splitext(file_name)[0]
                         if self.handler:
                             result = self.handler.go_to_data(file_open)
-                            return filename, result
+                            return self.file_n, result
 
 
 class DataHandler:
@@ -93,12 +91,15 @@ class DataViewer(DataHandler):
     def go_to_data(self, file_open):
 
         for num, line in enumerate(file_open):
+            #TODO print names for opened files
             try:
                 data = line.rstrip().decode()
                 print(data)
             except (UnicodeDecodeError, AttributeError):
                 print(line.rstrip())
-            if num >= 5: break
+            if num >= 5: 
+                print('')
+                break
 
 class DataSourcer(DataHandler):
     """
@@ -197,6 +198,9 @@ def loader(mode, path=DATA_PATH, data_for_load=None, sep=',', index_col=None, dt
                         data_dict[loaded[0]] = loaded[1]
 
         if data_dict:
+            print('List of extracted files:')
+            for key in data_dict:
+                print(key)
             return data_dict
 
     #insert new method of data observation
