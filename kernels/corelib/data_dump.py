@@ -41,7 +41,6 @@ def dumper(dump_list=None, path='default', method='shelve', task=None):
     
     Parameters
     ----------
-
     :param dump_list: 
     List or tuple with objects for saving
         list, tuple

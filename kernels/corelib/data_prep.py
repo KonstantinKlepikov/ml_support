@@ -100,7 +100,7 @@ def reduce_obj_mem_usage(df, verbose=True):
 
 def search_func(data, *cols):
     """
-    Function return dictionary of the form: 'value': index, that can be used for 
+    Function return dictionary of the form: 'value': index, that can be used for
     mapping in ordered feature encoding estimators
     
     Parameters
