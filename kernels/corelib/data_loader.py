@@ -11,8 +11,8 @@ class DataLoader:
     """
     Class provide method constructor for unpacking files
     """
-    def __init__(self, coding, path_ex, file_n):
-        self.coding = coding
+    def __init__(self, encoding, path_ex, file_n):
+        self.encoding = encoding
         self.path_ex = path_ex
         self.file_n = file_n
         self.handler = None
@@ -22,7 +22,7 @@ class csvLoader(DataLoader):
     Class provide method for open *.csv file
     """
     def dictLoader(self):
-        with open(self.path_ex, 'r', encoding=self.coding) as file_open:
+        with open(self.path_ex, 'r', encoding=self.encoding) as file_open:
             if self.handler:
                 result = self.handler.go_to_data(file_open)
                 return self.file_n, result
@@ -49,10 +49,12 @@ class DataHandler:
         self.sep = ','
         self.index_col = None
         self.dtype = None
+        self.parse_dates = False
 
     def source_tree(self, path, _ext=DATA_EXT):
         """
-        Looking for source tree and return dict, where keys are file or directory name, vakues are path to file or dir
+        Look for source tree and return dict, where keys are file or directory name,
+        values are path to file or directory
         """
         names = os.listdir(os.path.realpath(path))
         std = {}
@@ -74,7 +76,7 @@ class DataExtractor(DataHandler):
     """
     def go_to_data(self, file_open):
         try:
-            data_ex = pd.read_csv(file_open, sep=self.sep, index_col=self.index_col, dtype=self.dtype)
+            data_ex = pd.read_csv(file_open, sep=self.sep, index_col=self.index_col, dtype=self.dtype, parse_dates=self.parse_dates)
         except TypeError:
             print("'{}' is wrong name for parsing of column".format(self.index_col))
             data_ex= None
@@ -104,8 +106,7 @@ class DataSourcer(DataHandler):
     """
     def go_to_data(self, path):
         s_tree = super(DataSourcer, self).source_tree(path)
-        for key, val in s_tree.items():
-            print('{0} ..... {1}'.format(key, val))
+        return s_tree
 
 
 def loader(mode, path=DATA_PATH, data_for_load=None):
@@ -114,7 +115,6 @@ def loader(mode, path=DATA_PATH, data_for_load=None):
     
     Parameters
     ----------
-
     :param mode:
     Mode of function. 
     Available:
@@ -129,7 +129,7 @@ def loader(mode, path=DATA_PATH, data_for_load=None):
 
     :param data_for_load:
     Dictionary where keys are file names and values are dicts of parameters.
-    Looks like {'this.csv': {'sep': ',', 'coding': 'utf-8'}} etc.
+    Looks like {'this.csv': {'sep': ',', 'encoding': 'utf-8'}} etc.
     If None all files are loaded wit default parameters.
         dict, default None
 
@@ -152,20 +152,28 @@ def loader(mode, path=DATA_PATH, data_for_load=None):
     As example looks like 'dtype': {'assigned_day': np.float64}
         dict, default None
 
-    :coding: Encoding to - use for UTF when reading/writing (ex. ‘utf-8’)
+    :encoding: Encoding to - use for UTF when reading/writing (ex. ‘utf-8’)
         str, default None
+
+    :parse_dates:
+    Parse column as datetime format
+    If True -> try parsing the index.
+    List of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column.
+    List of lists. e.g. If [[1, 3]] -> combine columns 1 and 3 and parse as a single date column.
+    Dict, e.g. {‘foo’ : [1, 3]} -> parse columns 1, 3 as date and call result ‘foo’
+    More information [pandas.read_csv](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html)
+    If a column or index cannot be represented as an array of datetimes, 
+    say because of an unparseable value or a mixture of timezones, the column 
+    or index will be returned unaltered as an object data type.
+        bool or list of int or names or list of lists or dict, default False
 
     Return
     ------
-
     For mode 'extract' dict with pandas dataframe objects
 
     Future
     ------
-
-    - Code/decode checking for .zip
-    - more formats
-    - time stamps converter
+    - Code/decode checking for .zip (python-3.5+ dont support encoding in subprocess)
     """
     def load_process(source, for_load, mode, call_to_ext):
         """
@@ -182,17 +190,18 @@ def loader(mode, path=DATA_PATH, data_for_load=None):
             #set parameters for load
             if for_load:
                 call_to_ext.sep = for_load[file_n].get('sep', ',')
-                coding = for_load[file_n].get('sep')
+                encoding = for_load[file_n].get('sep')
                 call_to_ext.index_col = for_load[file_n].get('index_col')
                 call_to_ext.dtype = for_load[file_n].get('dtype')
+                call_to_ext.parse_dates = for_load[file_n].get('parse_dates')
             else:
-                coding = None
+                encoding = None
 
             path_ex = source[file_n]
-            #inser new method of files opening
+            #inser new method for different files extentions
             data_ext = {
-                '.csv': csvLoader(coding, path_ex, file_n),
-                '.zip': zipLoader(coding, path_ex, file_n)
+                '.csv': csvLoader(encoding, path_ex, file_n),
+                '.zip': zipLoader(encoding, path_ex, file_n)
             }
 
             loaded = None
@@ -206,7 +215,7 @@ def loader(mode, path=DATA_PATH, data_for_load=None):
         if data_dict:
             return data_dict
 
-    #insert new method of data observation
+    #insert new tasks of data observation
     if mode == 'extract':
         call_to_ext = DataExtractor()
         source = call_to_ext.source_tree(path)
@@ -226,7 +235,9 @@ def loader(mode, path=DATA_PATH, data_for_load=None):
 
     elif mode == 'tree':
         call_to_ext = DataSourcer()
-        call_to_ext.go_to_data(path)
+        s_tree = call_to_ext.go_to_data(path)
+        for key, val in s_tree.items():
+            print('{0} ..... {1}'.format(key, val))
         
     else:
         print('Wrong mode')
