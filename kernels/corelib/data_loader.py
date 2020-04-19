@@ -91,13 +91,13 @@ class DataViewer(DataHandler):
 
         data_vi = ''
         for num, line in enumerate(file_open):
-            #TODO print names for opened files
             try:
                 data_vi += line.decode()
             except (UnicodeDecodeError, AttributeError):
                 data_vi += line
             if num >= 5:
                 break
+        
         return data_vi
 
 class DataSourcer(DataHandler):
