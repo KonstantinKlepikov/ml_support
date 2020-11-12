@@ -1,7 +1,8 @@
 import os
 
-DATA_PATH = os.path.realpath('../input')
-DATA_EXT = '.csv', '.zip', '.txt'
+DATA_PATH = '../input'
+# DATA_PATH = os.path.realpath('../input')
+# DATA_EXT = '.csv', '.zip', '.txt'
 
 DUMP_PATH = '../kernels/dumped_data/'
 
