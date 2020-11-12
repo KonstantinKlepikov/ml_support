@@ -1,6 +1,7 @@
 import os
 
 DATA_PATH = '../../input'
+DATA_PATH_TEST = '../../test'
 # DATA_PATH = os.path.realpath('../input')
 # DATA_EXT = '.csv', '.zip', '.txt'
 
