@@ -11,7 +11,6 @@ class Processor:
     def __init__(self, path):
         self.path = path
 
-
     def checker(self, dict_of_extention):
 
         ex = None
@@ -20,7 +19,6 @@ class Processor:
                 ex = item[1]
 
         return ex
-
 
     def viewer(self, s_tree, prefix=''):
 
@@ -37,27 +35,27 @@ class Processor:
 
 class Loader:
 
-    def __init__(self, path):
+    def __init__(self, path, index_col, dtype, parse_dates):
         self.path = path
+        self.index_col = index_col
+        self.dtype = dtype
+        self.parse_dates = parse_dates
 
 
 class CsvLoader(Loader):
 
-    def __init__(self, path, sep, index_col, dtype, parse_dates, encoding):
-        Loader.__init__(self, path)
+    def __init__(self, path, index_col, dtype, parse_dates, sep, encoding):
+        Loader.__init__(self, path, index_col, dtype, parse_dates)
         self.sep = sep
-        self.index_col = index_col
-        self.dtype = dtype
-        self.parse_dates = parse_dates
         self.encoding = encoding
 
-    def dictLoader(self):
+    def load(self):
         with open(self.path, 'r', encoding=self.encoding) as file_open:
             try:
                 data_ex = pd.read_csv(file_open, sep=self.sep, index_col=self.index_col, dtype=self.dtype, parse_dates=self.parse_dates)
             except TypeError:
                 print("'{}' is wrong name for parsing of column".format(self.index_col))
-                data_ex= None
+                data_ex = None
             
         return data_ex
 
@@ -80,7 +78,7 @@ def sourcer(path):
         print('{0} ..... {1}'.format(key, val))
 
 
-def loader(slack, path=DATA_PATH, sep=',', index_col=None, dtype=None, parse_dates=False, encoding=None):
+def loader(slack, path=DATA_PATH, index_col=None, dtype=None, parse_dates=False, sep=',', encoding=None):
 
     """Read files and return pandas dataframe
 
@@ -126,11 +124,11 @@ def loader(slack, path=DATA_PATH, sep=',', index_col=None, dtype=None, parse_dat
     """
 
     path = os.path.realpath(path + '/' + slack)
-    dict_of_extention = {'.csv': CsvLoader(path, sep, index_col, dtype, parse_dates, encoding)}
+    dict_of_extention = {'.csv': CsvLoader(path, index_col, dtype, parse_dates, sep, encoding)}
     process = Processor(path).checker(dict_of_extention)
 
     if process:
-        return process
+        return process.load()
     else:
         try:
             raise EmptyExtention
@@ -151,6 +149,5 @@ if __name__ == "__main__":
     print('sourcer.... ok')
 
     loaded = loader('titanic.csv', path=DATA_PATH_TEST)
-    if loaded:
-        print(loaded)
-        print('loader .... ok')
+    print(loaded.head(1))
+    print('loader .... ok')
