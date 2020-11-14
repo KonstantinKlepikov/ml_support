@@ -1,0 +1,2 @@
+class EmptyExtention(Exception):
+    pass
