@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import os
 import csv
-import codecs
 from zipfile import ZipFile
 from zipfile import BadZipfile
 from core_paths import DATA_PATH, DATA_PATH_TEST, DATA_OUTPUT_TEST
