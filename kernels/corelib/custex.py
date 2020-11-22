@@ -1,2 +1,2 @@
-class EmptyExtention(Exception):
+class EmptyProcess(Exception):
     pass
