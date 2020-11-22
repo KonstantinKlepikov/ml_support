@@ -1,11 +1,35 @@
 import numpy as np
 import pandas as pd
-import os
-import csv
+import os, csv
 from zipfile import ZipFile
 from zipfile import BadZipfile
 from core_paths import DATA_PATH, DATA_PATH_TEST, DATA_OUTPUT_TEST
-from custex import EmptyExtention
+from custex import EmptyProcess
+
+
+class Observer:
+
+    """Class provides methods for display and check data source
+    """
+
+    def __init__(self, path):
+        self.path = path
+
+
+    def viewer(self, _s_tree, _prefix=''):
+
+        """Display source tree
+        """
+
+        names = os.listdir(self.path)
+        s_path = os.path.realpath(self.path)
+
+        for name in names:
+            fullpath = os.path.join(s_path, name)
+            if os.path.isfile(fullpath):
+                _s_tree[_prefix + name] = fullpath
+            elif os.path.isdir(fullpath):
+                Observer(self.path + '/' + name).viewer(_s_tree, _prefix + name + '/')
 
 
 class Processor:
@@ -13,8 +37,8 @@ class Processor:
     """Class provides methods for display and check data source
     """
 
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, slack, path):
+        self.path = os.path.realpath(path + '/' + slack)
 
     def checker(self, dict_of_extention):
 
@@ -31,32 +55,27 @@ class Processor:
 
         return ex
 
-    def viewer(self, s_tree, prefix=''):
 
-        """Display source tree
-        """
-
-        names = os.listdir(self.path)
-        s_path = os.path.realpath(self.path)
-
-        for name in names:
-            fullpath = os.path.join(s_path, name)
-            if os.path.isfile(fullpath):
-                s_tree[prefix + name] = fullpath
-            elif os.path.isdir(fullpath):
-                Processor(self.path + '/' + name).viewer(s_tree, prefix + name + '/')
-
-
-class Loader:
+class Loader(Processor):
 
     """Base class to data load
     """
 
-    def __init__(self, path, index_col, dtype, parse_dates):
-        self.path = path
+    def __init__(self, slack, path, index_col, dtype, parse_dates):
+        Processor.__init__(self, slack, path)
         self.index_col = index_col
         self.dtype = dtype
         self.parse_dates = parse_dates
+
+
+class Unpacker(Processor):
+
+    """Base class to unpack load
+    """
+
+    def __init__(self, slack, path, output):
+        Processor.__init__(self, slack, path)
+        self.output = os.path.realpath(path  + '/' + output)
 
 
 class CsvLoader(Loader):
@@ -64,8 +83,8 @@ class CsvLoader(Loader):
     """Load .csv files
     """
 
-    def __init__(self, path, index_col, dtype, parse_dates, sep, encoding):
-        Loader.__init__(self, path, index_col, dtype, parse_dates)
+    def __init__(self, slack, path, index_col, dtype, parse_dates, sep, encoding):
+        Loader.__init__(self, slack, path, index_col, dtype, parse_dates)
         self.sep = sep
         self.encoding = encoding
 
@@ -87,23 +106,13 @@ class CsvLoader(Loader):
         return data_ex
 
 
-class Unpacker:
-
-    """Base class to unpack load
-    """
-
-    def __init__(self, path, output):
-        self.path = path
-        self.output = output
-
-
 class ZipUnpacker(Unpacker):
 
     """Unpack .zip files
     """
 
-    def __init__(self, path, output):
-        Unpacker.__init__(self, path, output)
+    def __init__(self, slack, path, output):
+        Unpacker.__init__(self, slack, path, output)
     
     def unpack(self):
 
@@ -124,22 +133,26 @@ def sourcer(path):
 
     """Look for source tree and make dict, where keys are file or directory name,
     values are path to file or directory
+
+    path:
+        Base placement of data files
+        string: default DATA_PATH
     """
 
-    s_tree = {}
-    Processor(path).viewer(s_tree)
+    _s_tree = {}
+    Observer(path).viewer(_s_tree)
 
     print('File .... fell path:')
-    for key, val in s_tree.items():
+    for key, val in _s_tree.items():
         print('{0} ..... {1}'.format(key, val))
 
 
 def loader(slack, path=DATA_PATH, index_col=None, dtype=None, parse_dates=False, sep=',', encoding=None):
 
-    """Read files and return pandas dataframe
+    """Read file and return pandas dataframe
 
     slack:
-        Part of file path/
+        Part of file path
         string: looks like this/that.csv
 
     path:
@@ -187,25 +200,37 @@ def loader(slack, path=DATA_PATH, index_col=None, dtype=None, parse_dates=False,
         obj: Pandas dataFrame object
     """
 
-    path = os.path.realpath(path + '/' + slack)
-    dict_of_extention = {'.csv': CsvLoader(path, index_col, dtype, parse_dates, sep, encoding)}
-    process = Processor(path).checker(dict_of_extention)
+    dict_of_extention = {'.csv': CsvLoader(slack, path, index_col, dtype, parse_dates, sep, encoding)}
+    process = Processor(slack, path).checker(dict_of_extention)
 
     if process:
         return process
     else:
         try:
-            raise EmptyExtention
-        except EmptyExtention:
+            raise EmptyProcess
+        except EmptyProcess:
             print('Extention of file is wrong! Choose another file')
 
 
 def unpacker(slack, path=DATA_PATH, output=''):
 
-    output = os.path.realpath(path + output)
-    path = os.path.realpath(path + '/' + slack)
-    dict_of_extention = {'.zip': ZipUnpacker(path, output)}
-    process = Processor(path).checker(dict_of_extention)
+    """Unpack and extract file to target folder
+
+    slack:
+        Part of file path
+        string: looks like this/that.zip
+
+    path:
+        Base placement of data files
+        string: default DATA_PATH
+
+    output:
+        Part of folder path
+        string: looks like thisfolder
+    """
+
+    dict_of_extention = {'.zip': ZipUnpacker(slack, path, output)}
+    process = Processor(slack, path).checker(dict_of_extention)
     process.unpack()
 
 

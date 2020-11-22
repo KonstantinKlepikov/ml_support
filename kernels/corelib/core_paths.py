@@ -2,7 +2,7 @@ import os
 
 DATA_PATH = '../../input'
 DATA_PATH_TEST = '../../test'
-DATA_OUTPUT_TEST = '/subtitanic'
+DATA_OUTPUT_TEST = 'subtitanic'
 
 DUMP_PATH = '../kernels/dumped_data/'
 
