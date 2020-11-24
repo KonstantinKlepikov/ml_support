@@ -204,7 +204,7 @@ def loader(slack, path=DATA_PATH, index_col=None, dtype=None, parse_dates=False,
     process = Processor(slack, path).checker(dict_of_extention)
 
     if process:
-        return process
+        return process.pd_load()
     else:
         try:
             raise EmptyProcess
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     sourcer(path=DATA_PATH_TEST)
     print('sourcer.... ok')
 
-    loaded = loader('titanic.csv', path=DATA_PATH_TEST).pd_load()
+    loaded = loader('titanic.csv', path=DATA_PATH_TEST)
     print(loaded.head(1))
     print('loader .... ok')
 
