@@ -1,11 +1,16 @@
 import os
 
-DATA_PATH = '../../input'
-DATA_PATH_TEST = '../../test'
+
+PROJECT_ROOT_DIR = '.'
+IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, 'images', 'exitimg')
+
+DATA_PATH = os.path.join('../../', 'input')
+DATA_PATH_TEST = os.path.join('../../', 'test')
 DATA_OUTPUT_TEST = 'subtitanic'
 
-DUMP_PATH = '../kernels/dumped_data/'
+DUMP_PATH = os.path.join(PROJECT_ROOT_DIR, 'kernels', 'dumped_data')
 
-PROJECT_ROOT_DIR = "."
-CHAPTER_ID = "exitimg"
-IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images", CHAPTER_ID)
+if __name__ == "__main__":
+    
+    print(IMAGES_PATH)
+    print(DATA_PATH)
