@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
-import os, csv
+import os, csv, shelve
 from zipfile import ZipFile
 from zipfile import BadZipfile
-from core_paths import DATA_PATH, DATA_PATH_TEST, DATA_OUTPUT_TEST
 from custex import EmptyProcess
+import core_paths
 
 
 class Observer:
@@ -32,50 +32,19 @@ class Observer:
                 Observer(self.path + '/' + name).viewer(_s_tree, _prefix + name + '/')
 
 
-class Processor:
-
-    """Class provides methods for display and check data source
-    """
-
-    def __init__(self, slack, path):
-        self.path = os.path.realpath(path + '/' + slack)
-
-    def checker(self, dict_of_extention):
-
-        """Check data sorce
-
-        Returns:
-            obj: class exemplar for data processing for spurce file
-        """
-
-        ex = None
-        for item in dict_of_extention.items():
-            if os.path.splitext(self.path)[1] == item[0]:
-                ex = item[1]
-
-        return ex
-
-
-class Loader(Processor):
+class Loader:
 
     """Base class to data load
     """
 
     def __init__(self, slack, path, index_col, dtype, parse_dates):
-        Processor.__init__(self, slack, path)
+        self.path = os.path.realpath(os.path.join(path, slack))
         self.index_col = index_col
         self.dtype = dtype
         self.parse_dates = parse_dates
 
-
-class Unpacker(Processor):
-
-    """Base class to unpack load
-    """
-
-    def __init__(self, slack, path, output):
-        Processor.__init__(self, slack, path)
-        self.output = os.path.realpath(path  + '/' + output)
+    def pd_load(self):
+        pass
 
 
 class CsvLoader(Loader):
@@ -84,7 +53,7 @@ class CsvLoader(Loader):
     """
 
     def __init__(self, slack, path, index_col, dtype, parse_dates, sep, encoding):
-        Loader.__init__(self, slack, path, index_col, dtype, parse_dates)
+        super().__init__(slack, path, index_col, dtype, parse_dates)
         self.sep = sep
         self.encoding = encoding
 
@@ -106,13 +75,26 @@ class CsvLoader(Loader):
         return data_ex
 
 
+class Unpacker:
+
+    """Base class to unpack load
+    """
+
+    def __init__(self, slack, path, output):
+        self.path = os.path.realpath(os.path.join(path, slack))
+        self.output = os.path.realpath(os.path.join(path, output))
+
+    def unpack(self):
+        pass
+
+
 class ZipUnpacker(Unpacker):
 
     """Unpack .zip files
     """
 
     def __init__(self, slack, path, output):
-        Unpacker.__init__(self, slack, path, output)
+        super().__init__(slack, path, output)
     
     def unpack(self):
 
@@ -127,6 +109,67 @@ class ZipUnpacker(Unpacker):
                     print('{} ... unpacked'.format(ig))
                 except BadZipfile:
                     print('{} ... wrong file'.format(ig))
+
+
+class DataDump:
+
+    """Class provide method constructor for serialise data
+    """
+
+    def __init__(self, path, slack):
+
+        self.path = path
+        self.ospath = os.path.join(path, slack)
+
+
+class ShelveDump(DataDump):
+
+    """Class provide methods for save and load data with shelve
+    """
+
+    def save(self, dump_list):
+        print(self.ospath)
+        with shelve.open(self.ospath) as s:
+            for k, v in enumerate(dump_list):
+                try:
+                    s[str(k)] = v
+                    print('Object {0} is dumped to "{1}" objects'.format(k, self.path))
+                except TypeError:
+                    print('Object {0} not dumped - an error occurred'.format(k))
+
+    def load(self):
+        dict_of_objects = {}
+        with shelve.open(self.ospath) as o:
+            for k, v in o.items():
+                dict_of_objects[k] = v
+            return dict_of_objects.values()
+
+
+def checker(slack, path, dict_of_extention):
+
+    """Check data sorce
+
+    Returns:
+        obj: class exemplar for data processing for spurce file
+    """
+
+    path = os.path.realpath(os.path.join(path, slack))
+    ex = None
+    for item in dict_of_extention.items():
+        if os.path.splitext(path)[1] == item[0]:
+            ex = item[1]
+
+    return ex
+
+def check_the_output(process):
+
+    if process:
+        return process
+    else:
+        try:
+            raise EmptyProcess
+        except EmptyProcess:
+            print('Extention of file is wrong! Choose another file')
 
 
 def sourcer(path):
@@ -147,7 +190,7 @@ def sourcer(path):
         print('{0} ..... {1}'.format(key, val))
 
 
-def loader(slack, path=DATA_PATH, index_col=None, dtype=None, parse_dates=False, sep=',', encoding=None):
+def loader(slack, path=core_paths.DATA_PATH, index_col=None, dtype=None, parse_dates=False, sep=',', encoding=None):
 
     """Read file and return pandas dataframe
 
@@ -201,18 +244,12 @@ def loader(slack, path=DATA_PATH, index_col=None, dtype=None, parse_dates=False,
     """
 
     dict_of_extention = {'.csv': CsvLoader(slack, path, index_col, dtype, parse_dates, sep, encoding)}
-    process = Processor(slack, path).checker(dict_of_extention)
+    process = checker(slack, path, dict_of_extention)
 
-    if process:
-        return process.pd_load()
-    else:
-        try:
-            raise EmptyProcess
-        except EmptyProcess:
-            print('Extention of file is wrong! Choose another file')
+    return check_the_output(process).pd_load()
 
 
-def unpacker(slack, path=DATA_PATH, output=''):
+def unpacker(slack, path=core_paths.DATA_PATH, output=''):
 
     """Unpack and extract file to target folder
 
@@ -230,18 +267,77 @@ def unpacker(slack, path=DATA_PATH, output=''):
     """
 
     dict_of_extention = {'.zip': ZipUnpacker(slack, path, output)}
-    process = Processor(slack, path).checker(dict_of_extention)
-    process.unpack()
+    process = checker(slack, path, dict_of_extention)
+    check_the_output(process).unpack()
+
+
+def dumper(dump_list=None, path=core_paths.DUMP_PATH, slack='default', method='shelve', task=None):
+
+    """Save and open data with serialise tools. 
+    Now available:
+    - shelve
+    
+    param dump_list: 
+        List or tuple with objects for saving
+        list, tuple: default None
+    
+    slack:
+        Part of file path
+        string: looks like thisisnameoffile
+
+    path:
+        Base placement of data files
+        string: default DUMP_PATH
+
+    param method: 
+        Method of serialisation
+        string: default 'shelve'
+
+    param task: 
+        Type of operation. 's' for saving, 'o' for opening
+        string: default None
+    """
+
+    if method == 'shelve':
+        dumped = ShelveDump(path, slack)
+    else:
+        print('Wrong method')
+
+    if task == 's':
+        try: 
+            dumped.save(dump_list)
+        except NameError:
+            print("Objects can't be saved")
+    elif task == 'o':
+        try: 
+            return dumped.load()
+        except NameError:
+            print("Objects can't be extracted")
+    else:
+        print("No one object are dumped. Set task 'o' for opening or set task 's' for saving.")
 
 
 if __name__ == "__main__":
     
-    sourcer(path=DATA_PATH_TEST)
+    sourcer(path=core_paths.DATA_PATH_TEST)
     print('sourcer.... ok')
 
-    loaded = loader('titanic.csv', path=DATA_PATH_TEST)
-    print(loaded.head(1))
-    print('loader .... ok')
+    loaded = loader('titanic.csv', path=core_paths.DATA_PATH_TEST)
+    if loaded is True:
+        print(loaded.head(1))
+        print('dumper load .... ok')
+    else:
+        print('dumper load .... None')
 
-    unpacker('titanic.zip', path=DATA_PATH_TEST, output=DATA_OUTPUT_TEST)
+    unpacker('titanic.zip', path=core_paths.DATA_PATH_TEST, output=core_paths.DATA_OUTPUT_TEST)
     print('unpacker .... ok')
+
+    dumper(dump_list=[loaded], path=core_paths.DUMP_PATH_TEST, task='s')
+    print('dumper save .... ok')
+
+    loaded, = dumper(path=core_paths.DUMP_PATH_TEST, task='o')
+    if loaded is True:
+        print(loaded.head(1))
+        print('dumper load .... ok')
+    else:
+        print('dumper load .... None')
