@@ -7,6 +7,10 @@ from custex import EmptyProcess
 import core_paths
 
 
+class Fabricator:
+    pass
+
+
 class Loader:
 
     """Base class to data load
@@ -21,7 +25,7 @@ class Loader:
         self.encoding = encoding
 
 
-class CSVLoader(Loader):
+class CSVLoader(Loader, Fabricator):
 
 
     @classmethod
@@ -46,6 +50,43 @@ class CSVLoader(Loader):
         return data_ex
 
 
+class Unpacker:
+
+    """Base class to unpack load
+    """
+
+    def __init__(self, in_path, out_path):
+        self.in_path = in_path
+        self.out_path = out_path
+
+
+class ZipUnpacker(Unpacker, Fabricator):
+
+    """Unpack .zip files
+    """
+
+    @classmethod
+    def _is_check_for(cls, check):
+        return check == '.zip'
+    
+    def unpacker(self):
+
+        """Unpack .zip files
+        """
+
+        with ZipFile(self.in_path, 'r') as g:
+            inside = g.infolist()
+            for ig in inside:
+                try:
+                    g.extract(ig, self.out_path)
+                    print('{} ... unpacked'.format(ig))
+                except BadZipfile:
+                    print('{} ... wrong file'.format(ig))
+
+    def pack(self):
+        pass
+
+
 class Processor:
 
 
@@ -55,13 +96,13 @@ class Processor:
         return os.path.realpath(os.path.join(path_, slack))
 
     @staticmethod
-    def _check_the_extention(in_path):
+    def _extention(in_path):
 
         return os.path.splitext(in_path)[1]
 
     @staticmethod
     def _check_the_input(check):
-        for cls_ in Loader.__subclasses__():
+        for cls_ in Fabricator.__subclasses__():
             if cls_._is_check_for(check):
                 return cls_
         try:
@@ -159,7 +200,7 @@ class Processor:
         """
 
         in_path = self._rjpath(path_, inslack)
-        process = self._check_the_extention(in_path)
+        process = self._extention(in_path)
         process = self._check_the_input(process)
     
         return process(in_path, index_col, dtype, parse_dates, sep, encoding).loader()
@@ -170,49 +211,33 @@ class Processor:
     def pack(self):
         pass
 
-    def unpack(self):
-        pass
+    def unpack(self, path_=core_paths.DATA_PATH, inslack='', outslack=''):
+
+        """Unpack and extract file to target folder
+
+        path_:
+            Base placement of data files
+            string: default core_paths.DATA_PATH,
+
+        inslack:
+            Part of file path, looks like this/that.zip
+            string: default ''
+
+        outslack:
+            Part of folder path, looks like thisfolder
+            string: default ''
+        """
+
+        in_path = self._rjpath(path_, inslack)
+        out_path = self._rjpath(path_, outslack)
+        process = self._extention(in_path)
+        process = self._check_the_input(process)
+        process(in_path, out_path).unpacker()
 
     def dump(self):
         pass
 
     def undump(self):
-        pass
-
-
-class Unpacker(Processor):
-
-    """Base class to unpack load
-    """
-
-    def __init__(self, path_, inslack, outslack):
-        self.path_ = self._rjpath(path_, inslack)
-        self.outslack = self._rjpath(path_, outslack)
-
-
-class ZipUnpacker(Unpacker):
-
-    """Unpack .zip files
-    """
-
-    def __init__(self, path_, inslack, outslack):
-        super().__init__(path_, inslack, outslack)
-    
-    def unpack(self):
-
-        """Unpack .zip files
-        """
-
-        with ZipFile(self.path_, 'r') as g:
-            inside = g.infolist()
-            for ig in inside:
-                try:
-                    g.extract(ig, self.outslack)
-                    print('{} ... unpacked'.format(ig))
-                except BadZipfile:
-                    print('{} ... wrong file'.format(ig))
-
-    def pack(self):
         pass
 
 
@@ -246,29 +271,6 @@ class ShelveDump(DataDump):
             for k, v in o.items():
                 dict_of_objects[k] = v
             return dict_of_objects.values()
-
-
-def unpacker(inslack, path_=core_paths.DATA_PATH, outslack=''):
-
-    """Unpack and extract file to target folder
-
-    inslack:
-        Part of file path
-        string: looks like this/that.zip
-
-    path_:
-        Base placement of data files
-        string: default DATA_PATH
-
-    outslack:
-        Part of folder path
-        string: looks like thisfolder
-    """
-
-    dict_of_extention = {'.zip': ZipUnpacker(inslack, path_, outslack)}
-    process = checker(inslack, path_, dict_of_extention)
-    check_the_output(process).unpack()
-
 
 def dumper(dump_list=None, path_=core_paths.DUMP_PATH, inslack='default', method='shelve', task=None):
 
@@ -329,7 +331,7 @@ if __name__ == "__main__":
     else:
         print('load .... None')
 
-    unpacker('titanic.zip', path_=core_paths.DATA_PATH_TEST, outslack=core_paths.DATA_OUTPUT_TEST)
+    pro.unpack(path_=core_paths.DATA_PATH_TEST, inslack='titanic.zip', outslack=core_paths.DATA_OUTPUT_TEST)
     print('unpacker .... ok')
 
     dumper(dump_list=[loaded], path_=core_paths.DUMP_PATH_TEST, task='s')
