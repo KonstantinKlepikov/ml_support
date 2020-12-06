@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import os, csv, shelve
+import os, csv, shelve, inspect
 from zipfile import ZipFile
 from zipfile import BadZipfile
 from custex import EmptyProcess
@@ -8,12 +8,16 @@ import core_paths
 
 
 class Fabricator:
+
+    """Base class for fabric methods
+    """
+
     pass
 
 
 class Loader:
 
-    """Base class to data load
+    """Base class for data load
     """
 
     def __init__(self, in_path, index_col, dtype, parse_dates, sep, encoding):
@@ -25,6 +29,36 @@ class Loader:
         self.encoding = encoding
 
 
+class Unpacker:
+
+    """Base class for pack and unpack
+    """
+
+    def __init__(self, in_path, out_path):
+        self.in_path = in_path
+        self.out_path = out_path
+
+
+class Dumper:
+
+    """Base class for serialize
+    """
+
+    def __init__(self, in_path, out_path, dump_list):
+        self.in_path = in_path
+        self.out_path = out_path
+        self.dump_list = dump_list
+
+
+class Undumper:
+
+    """Base class for unserialize
+    """
+
+    def __init__(self, out_path):
+        self.out_path = out_path
+
+
 class CSVLoader(Loader, Fabricator):
 
 
@@ -32,13 +66,7 @@ class CSVLoader(Loader, Fabricator):
     def _is_check_for(cls, check):
         return check == '.csv'
 
-    def loader(self):
-
-        """Loads csv to pd
-
-        Returns:
-            obj: pandas DataFrame
-        """
+    def load(self):
 
         with open(self.in_path, 'r', encoding=self.encoding) as file_open:
             try:
@@ -49,30 +77,29 @@ class CSVLoader(Loader, Fabricator):
         
         return data_ex
 
+    def view(self):
 
-class Unpacker:
+        data_vi = ''
+        with open(self.in_path, 'r', encoding=self.encoding) as file_open:
+            for num, line in enumerate(file_open):
+                try:
+                    data_vi += line.decode()
+                except (UnicodeDecodeError, AttributeError):
+                    data_vi += line
+                if num >= 5:
+                    break
 
-    """Base class to unpack load
-    """
-
-    def __init__(self, in_path, out_path):
-        self.in_path = in_path
-        self.out_path = out_path
+        return data_vi
 
 
 class ZipUnpacker(Unpacker, Fabricator):
 
-    """Unpack .zip files
-    """
 
     @classmethod
     def _is_check_for(cls, check):
         return check == '.zip'
     
-    def unpacker(self):
-
-        """Unpack .zip files
-        """
+    def unpack(self):
 
         with ZipFile(self.in_path, 'r') as g:
             inside = g.infolist()
@@ -87,27 +114,15 @@ class ZipUnpacker(Unpacker, Fabricator):
         pass
 
 
-class DataDump:
+class ShelveDumper(Dumper, Fabricator):
 
-    """Class provide method constructor for serialise data
-    """
-
-    def __init__(self, in_path, out_path, dump_list):
-        self.in_path = in_path
-        self.out_path = out_path
-        self.dump_list = dump_list
-
-
-class ShelveDump(DataDump, Fabricator):
-
-    """Class provide methods for save and load data with shelve
-    """
 
     @classmethod
     def _is_check_for(cls, check):
         return check == 'shelve'
 
-    def dumper(self):
+    def dump(self):
+
         with shelve.open(self.out_path) as s:
             for k, v in enumerate(self.dump_list):
                 try:
@@ -116,7 +131,16 @@ class ShelveDump(DataDump, Fabricator):
                 except TypeError:
                     print('Object {0} not dumped - an error occurred'.format(k))
 
-    def undumper(self):
+
+class ShelveUndumper(Undumper, Fabricator):
+
+
+    @classmethod
+    def _is_check_for(cls, check):
+        return check == 'shelve'
+
+    def undump(self):
+
         dict_of_objects = {}
         with shelve.open(self.out_path) as o:
             for k, v in o.items():
@@ -126,21 +150,53 @@ class ShelveDump(DataDump, Fabricator):
 
 class Processor:
 
+    """Class provides methoda for operations over data and files
+
+    Available:
+    - create source tree for folder
+    - read and display file content
+    - load file to DataFrame
+    - unpack file
+    - serialize data
+    - unserialize data
+    """
 
     @staticmethod
     def _rjpath(path_, slack):
+
+        """Make realpath
+
+        Returns:
+            str: path
+        """
 
         return os.path.realpath(os.path.join(path_, slack))
 
     @staticmethod
     def _extention(in_path):
 
+        """Make file extention string
+
+        Returns:
+            str: extention
+        """
+
         return os.path.splitext(in_path)[1]
 
     @staticmethod
-    def _check_the_input(check):
+    def _check_the_input(check, method):
+
+        """Check:
+        - is current class method has same name as called class method
+        - is checked file extention defined for called method
+
+        Returns:
+            cls: cls if both conditions are True
+        """
+
         for cls_ in Fabricator.__subclasses__():
-            if cls_._is_check_for(check):
+            method_list = [func for func in dir(cls_) if callable(getattr(cls_, func)) and not func.startswith("__")]
+            if method in method_list and cls_._is_check_for(check):
                 return cls_
         try:
             raise ValueError
@@ -152,10 +208,6 @@ class Processor:
 
         """Look for source tree and make dict, where keys are file or directory name,
         values are path to file or directory
-
-        path_:
-            Base placement of data files
-            string: default DATA_PATH
         """
 
         names = os.listdir(path_)
@@ -182,12 +234,12 @@ class Processor:
         for key, val in _s_tree.items():
             print('{0} ..... {1}'.format(key, val))
 
-    def view(self):
-        pass
+    def view(self, path_=core_paths.DATA_PATH, inslack='', encoding=None):
 
-    def load(self, path_=core_paths.DATA_PATH, inslack='', index_col=None, dtype=None, parse_dates=False, sep=',', encoding=None):
+        """Read and display file
 
-        """Read file and return pandas dataframe
+        Now available:
+        - csv
 
         path_:
             Base placement of data files
@@ -197,6 +249,38 @@ class Processor:
             Part of file path, looks like this/that.csv
             string: default ''
 
+        encoding: 
+            Encoding to - use for UTF when reading/writing (ex. ‘utf-8’)
+            str: default None
+
+        Returns:
+            str: top 5 strings of file
+        """
+
+        index_col=None
+        dtype=None
+        parse_dates=None
+        sep=None
+        in_path = self._rjpath(path_, inslack)
+        process = self._extention(in_path)
+        process = self._check_the_input(process, inspect.stack()[0][3])
+        if process:
+            return process(in_path, index_col, dtype, parse_dates, sep, encoding).view()
+
+    def load(self, path_=core_paths.DATA_PATH, inslack='', index_col=None, dtype=None, parse_dates=False, sep=',', encoding=None):
+
+        """Read file and return pandas dataframe
+
+        Now available:
+        - csv
+
+        path_:
+            Base placement of data files
+            string: default core_paths.DATA_PATH constant
+
+        inslack:
+            Part of file path, looks like this/that.csv
+            string: default ''
 
         index_col:
             Column to use as the row labels of the DataFrame, either given as string name or column index.
@@ -238,9 +322,9 @@ class Processor:
 
         in_path = self._rjpath(path_, inslack)
         process = self._extention(in_path)
-        process = self._check_the_input(process)
-    
-        return process(in_path, index_col, dtype, parse_dates, sep, encoding).loader()
+        process = self._check_the_input(process, inspect.stack()[0][3])
+        if process:
+            return process(in_path, index_col, dtype, parse_dates, sep, encoding).load()
 
     def save(self):
         pass
@@ -251,6 +335,9 @@ class Processor:
     def unpack(self, path_=core_paths.DATA_PATH, inslack='', outslack=''):
 
         """Unpack and extract file to target folder
+
+        Now available:
+        - zip
 
         path_:
             Base placement of data files
@@ -268,12 +355,14 @@ class Processor:
         in_path = self._rjpath(path_, inslack)
         out_path = self._rjpath(path_, outslack)
         process = self._extention(in_path)
-        process = self._check_the_input(process)
-        process(in_path, out_path).unpacker()
+        process = self._check_the_input(process, inspect.stack()[0][3])
+        if process:
+            process(in_path, out_path).unpack()
 
     def dump(self, path_=core_paths.DATA_PATH, inslack='', outslack='', dump_list=None, method='shelve'):
 
-        """Save data with serialise tools. 
+        """Save data with serialise tools
+
         Now available:
         - shelve
 
@@ -300,12 +389,14 @@ class Processor:
 
         in_path = self._rjpath(path_, inslack)
         out_path = self._rjpath(path_, outslack)
-        process = self._check_the_input(method)
-        process(in_path, out_path, dump_list).dumper()
+        process = self._check_the_input(method, inspect.stack()[0][3])
+        if process:
+            process(in_path, out_path, dump_list).dump()
 
     def undump(self, path_=core_paths.DATA_PATH, outslack='', method='shelve'):
 
-        """Load data with serialise tools.
+        """Load data with serialise tools
+
         Now available:
         - shelve
 
@@ -327,8 +418,9 @@ class Processor:
         """
 
         out_path = self._rjpath(path_, outslack)
-        process = self._check_the_input(method)
-        process(out_path).undumper()
+        process = self._check_the_input(method, inspect.stack()[0][3])
+        if process:
+            return process(out_path).undump()
 
 
 if __name__ == "__main__":
@@ -336,23 +428,44 @@ if __name__ == "__main__":
     pro = Processor()
     pro.source(path_=core_paths.DATA_PATH_TEST)
     print('source.... ok')
+    print('.' * 100)
+
+    loaded = pro.view(path_=core_paths.DATA_PATH_TEST, inslack='titanic.csv')
+    if loaded:
+        print(loaded)
+        print('view correct .... ok')
+        print('.' * 100)
 
     loaded = pro.load(path_=core_paths.DATA_PATH_TEST, inslack='titanic.csv')
     if isinstance(loaded, pd.DataFrame):
         print(loaded.head(1))
-        print('load .... ok')
+        print('load correct .... ok')
+        print('.' * 100)
     else:
-        print('load .... None')
+        print('load correct.... None')
+        print('.' * 100)
+
+    pro.load(path_=core_paths.DATA_PATH_TEST, inslack='wrong_extention.sdv')
+    print('load wrong .... ok')
+    print('.' * 100)
 
     pro.unpack(path_=core_paths.DATA_PATH_TEST, inslack='titanic.zip', outslack=core_paths.DATA_OUTPUT_TEST)
-    print('unpack .... ok')
+    print('unpack correct .... ok')
+    print('.' * 100)
+
+    pro.unpack(path_=core_paths.DATA_PATH_TEST, inslack='wrong_extention.sdv', outslack=core_paths.DATA_OUTPUT_TEST)
+    print('unpack wrong .... ok')
+    print('.' * 100)
 
     pro.dump(path_=core_paths.DUMP_PATH_TEST, dump_list=[loaded])
     print('dump save .... ok')
+    print('.' * 100)
 
     loaded, = pro.undump(path_=core_paths.DUMP_PATH_TEST)
     if isinstance(loaded, pd.DataFrame):
         print(loaded.head(1))
         print('dump load .... ok')
+        print('.' * 100)
     else:
         print('dump load .... None')
+        print('.' * 100)
