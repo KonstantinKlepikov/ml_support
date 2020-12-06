@@ -87,6 +87,43 @@ class ZipUnpacker(Unpacker, Fabricator):
         pass
 
 
+class DataDump:
+
+    """Class provide method constructor for serialise data
+    """
+
+    def __init__(self, in_path, out_path, dump_list):
+        self.in_path = in_path
+        self.out_path = out_path
+        self.dump_list = dump_list
+
+
+class ShelveDump(DataDump, Fabricator):
+
+    """Class provide methods for save and load data with shelve
+    """
+
+    @classmethod
+    def _is_check_for(cls, check):
+        return check == 'shelve'
+
+    def dumper(self):
+        with shelve.open(self.out_path) as s:
+            for k, v in enumerate(self.dump_list):
+                try:
+                    s[str(k)] = v
+                    print('Object {0} is dumped to "{1}" objects'.format(k, self.out_path))
+                except TypeError:
+                    print('Object {0} not dumped - an error occurred'.format(k))
+
+    def undumper(self):
+        dict_of_objects = {}
+        with shelve.open(self.out_path) as o:
+            for k, v in o.items():
+                dict_of_objects[k] = v
+            return dict_of_objects.values()
+
+
 class Processor:
 
 
@@ -217,7 +254,7 @@ class Processor:
 
         path_:
             Base placement of data files
-            string: default core_paths.DATA_PATH,
+            string: default core_paths.DATA_PATH
 
         inslack:
             Part of file path, looks like this/that.zip
@@ -234,88 +271,64 @@ class Processor:
         process = self._check_the_input(process)
         process(in_path, out_path).unpacker()
 
-    def dump(self):
-        pass
+    def dump(self, path_=core_paths.DATA_PATH, inslack='', outslack='', dump_list=None, method='shelve'):
 
-    def undump(self):
-        pass
+        """Save data with serialise tools. 
+        Now available:
+        - shelve
 
+        path_:
+            Base placement of data files
+            string: default core_paths.DATA_PATH
 
-class DataDump(Processor):
+        inslack:
+        Part of dumped file path, looks like thisisnameoffile
+            string: default ''
 
-    """Class provide method constructor for serialise data
-    """
+        outslack:
+        Part of undumped structure path, looks like thisisnameoffile
+            string: default ''
 
-    def __init__(self, path_, inslack):
-        super().__init__(path_, inslack)
-
-
-class ShelveDump(DataDump):
-
-    """Class provide methods for save and load data with shelve
-    """
-
-    def dump(self, dump_list):
-        print(self.path_)
-        with shelve.open(self.path_) as s:
-            for k, v in enumerate(dump_list):
-                try:
-                    s[str(k)] = v
-                    print('Object {0} is dumped to "{1}" objects'.format(k, self.path_))
-                except TypeError:
-                    print('Object {0} not dumped - an error occurred'.format(k))
-
-    def undump(self):
-        dict_of_objects = {}
-        with shelve.open(self.path_) as o:
-            for k, v in o.items():
-                dict_of_objects[k] = v
-            return dict_of_objects.values()
-
-def dumper(dump_list=None, path_=core_paths.DUMP_PATH, inslack='default', method='shelve', task=None):
-
-    """Save and open data with serialise tools. 
-    Now available:
-    - shelve
-    
-    param dump_list: 
+        dump_list: 
         List or tuple with objects for saving
-        list, tuple: default None
-    
-    inslack:
-        Part of file path
-        string: looks like thisisnameoffile
+            list, tuple: default None
 
-    path_:
-        Base placement of data files
-        string: default DUMP_PATH
-
-    param method: 
+        method:
         Method of serialisation
-        string: default 'shelve'
+            string: default 'shelve'
+        """
 
-    param task: 
-        Type of operation. 's' for saving, 'o' for opening
-        string: default None
-    """
+        in_path = self._rjpath(path_, inslack)
+        out_path = self._rjpath(path_, outslack)
+        process = self._check_the_input(method)
+        process(in_path, out_path, dump_list).dumper()
 
-    if method == 'shelve':
-        dumped = ShelveDump(path_, inslack)
-    else:
-        print('Wrong method')
+    def undump(self, path_=core_paths.DATA_PATH, outslack='', method='shelve'):
 
-    if task == 's':
-        try: 
-            dumped.dump(dump_list)
-        except NameError:
-            print("Objects can't be saved")
-    elif task == 'o':
-        try: 
-            return dumped.undump()
-        except NameError:
-            print("Objects can't be extracted")
-    else:
-        print("No one object are dumped. Set task 'o' for opening or set task 's' for saving.")
+        """Load data with serialise tools.
+        Now available:
+        - shelve
+
+        path_:
+            Base placement of data files
+            string: default core_paths.DATA_PATH
+
+        outslack:
+        Part of output structure path, looks like thisisnameoffile
+            string: default ''
+
+        dump_list: 
+        List or tuple with objects for saving
+            list, tuple: default None
+
+        method:
+        Method of serialisation
+            string: default 'shelve'
+        """
+
+        out_path = self._rjpath(path_, outslack)
+        process = self._check_the_input(method)
+        process(out_path).undumper()
 
 
 if __name__ == "__main__":
@@ -332,14 +345,14 @@ if __name__ == "__main__":
         print('load .... None')
 
     pro.unpack(path_=core_paths.DATA_PATH_TEST, inslack='titanic.zip', outslack=core_paths.DATA_OUTPUT_TEST)
-    print('unpacker .... ok')
+    print('unpack .... ok')
 
-    dumper(dump_list=[loaded], path_=core_paths.DUMP_PATH_TEST, task='s')
-    print('dumper save .... ok')
+    pro.dump(path_=core_paths.DUMP_PATH_TEST, dump_list=[loaded])
+    print('dump save .... ok')
 
-    loaded, = dumper(path_=core_paths.DUMP_PATH_TEST, task='o')
-    if loaded is True:
+    loaded, = pro.undump(path_=core_paths.DUMP_PATH_TEST)
+    if isinstance(loaded, pd.DataFrame):
         print(loaded.head(1))
-        print('dumper load .... ok')
+        print('dump load .... ok')
     else:
-        print('dumper load .... None')
+        print('dump load .... None')
