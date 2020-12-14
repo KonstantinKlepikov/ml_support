@@ -7,12 +7,12 @@ Repository is prepared for kaggle tasks
 ## Usage
 
 ```python
-pip install corelib
+pip install ml-support==0.0
 ```
 
-1. Install python packages from requirements.txt
+- Install python packages from requirements.txt
 
-2. Create project and folders for that project:
+- Create project and folders for that project:
 
 ```
 \proj_name
@@ -21,13 +21,13 @@ pip install corelib
     \output
 ```
 
-3. Choose competition on [kaggle.com](https://www.kaggle.com/)
+- Choose competition on [kaggle.com](https://www.kaggle.com/)
 
-4. Load data into ..\input folder
+- Load data into ..\input folder
 
-5. Use jupyter notebook in ..\kernels folder for data research
+- Use jupyter notebook in ..\kernels folder for data research
 
-6. Look for result of research in ..\output folder
+- Look for result of research in ..\output folder
 
 ## Content
 
