@@ -6,20 +6,31 @@ Repository is prepared for kaggle tasks
 
 ## Usage
 
-1. Clone this repository into local folder
+```python
+pip install corelib
+```
 
-2. Install python packages from requirements.txt
+1. Install python packages from requirements.txt
+
+2. Create project and folders for that project:
+
+```
+\proj_name
+    \input
+    \kernels
+    \output
+```
 
 3. Choose competition on [kaggle.com](https://www.kaggle.com/)
 
-4. Load data into ../input folder
+4. Load data into ..\input folder
 
-5. Use jupyter notebook templates and functions descriprions for data research
+5. Use jupyter notebook in ..\kernels folder for data research
+
+6. Look for result of research in ..\output folder
 
 ## Content
 
-- table data preprocessing
+- table data preprocessing tools
 
-- table data visualisation
-
-- table data classification
+- table data visualisation tools
