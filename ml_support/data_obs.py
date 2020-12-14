@@ -3,7 +3,6 @@ import pandas as pd
 import os, csv, shelve, inspect
 from zipfile import ZipFile
 from zipfile import BadZipfile
-from custex import EmptyProcess
 import core_paths
 
 

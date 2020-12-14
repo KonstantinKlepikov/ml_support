@@ -6,20 +6,31 @@ Repository is prepared for kaggle tasks
 
 ## Usage
 
-1. Clone this repository into local folder
+```python
+pip install ml-support==0.0
+```
 
-2. Install python packages from requirements.txt
+- Install python packages from requirements.txt
 
-3. Choose competition on [kaggle.com](https://www.kaggle.com/)
+- Create project and folders for that project:
 
-4. Load data into ../input folder
+```
+\proj_name
+    \input
+    \kernels
+    \output
+```
 
-5. Use jupyter notebook templates and functions descriprions for data research
+- Choose competition on [kaggle.com](https://www.kaggle.com/)
+
+- Load data into ..\input folder
+
+- Use jupyter notebook in ..\kernels folder for data research
+
+- Look for result of research in ..\output folder
 
 ## Content
 
-- table data preprocessing
+- table data preprocessing tools
 
-- table data visualisation
-
-- table data classification
+- table data visualisation tools

@@ -8,6 +8,8 @@
 .ipynb_checkpoints
 .vscode
 
+dist
+*.egg-info
 checkpoint
 myvenv
 __pycache__

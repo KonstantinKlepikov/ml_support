@@ -1,2 +1,0 @@
-class EmptyProcess(Exception):
-    pass
