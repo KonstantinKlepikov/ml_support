@@ -1,5 +1,6 @@
 import os
 
+
 # main
 PROJECT_ROOT_DIR = '../../'
 
@@ -11,6 +12,7 @@ IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, 'kernels', 'images', 'exitimg')
 DATA_PATH_TEST = os.path.join('../', 'test')
 DATA_OUTPUT_TEST = 'subtitanic'
 DUMP_PATH_TEST = os.path.join('../', 'test', 'dumped_data')
+IMAGES_PATH_TEST = os.path.join('../', 'kernels', 'images', 'exitimg')
 
 if __name__ == "__main__":
     

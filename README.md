@@ -7,19 +7,20 @@ Repository is prepared for kaggle tasks
 ## Usage
 
 ```python
-pip install ml-support==0.0
+pip install ml-support
 ```
 
 - Install python packages from requirements.txt
 
 - Create project and folders for that project:
 
-```
-\proj_name
-    \input
-    \kernels
-    \output
-```
+>\proj_name
+>
+>..\input
+>
+>..\kernels
+>
+>..\output
 
 - Choose competition on [kaggle.com](https://www.kaggle.com/)
 
