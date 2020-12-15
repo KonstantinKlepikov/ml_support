@@ -1,25 +1,15 @@
 import numpy as np
 import pandas as pd
 
+
 def reduce_mem_usage(df, verbose=True):
-    """
-    Reduce numeric 
+    """Reduce numeric 
     
-    Parameters
-    ----------
-    :param df: pandas data frame
-        pd.DataFrame object
+    df: pandas data frame
+        pd.DataFrame object: 
 
-    Return
-    ------
-
-    Pandas data frame object
-
-    Future
-    ------
-
-    - optimisation by transfer float to int
-    - reduce objects
+    Return:
+        pandas data frame object
     """
     numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
     start_mem = df.memory_usage().sum() / 1024**2
@@ -53,27 +43,16 @@ def reduce_mem_usage(df, verbose=True):
 
 
 def reduce_obj_mem_usage(df, verbose=True):
-    """
-    Reduce object. Return new data frame, containing only columns with dtype object.
+    """Reduce object. Return new data frame, containing only columns with dtype object.
     Columns with number of unique values, that is no more than 50%, recieve subtype category
     
-    Parameters
-    ----------
+    df: 
+        Pandas data frame
+        pd.DataFrame object:
 
-    :param df: 
-    Pandas data frame
-        pd.DataFrame object
-
-    Return
-    ------
-
-    New pandas data frame, which contains only object and categorial dtype columns.
-    All other columns is droped.
-
-    Future
-    ------
-
-    - all columns return
+    Return:
+        New pandas data frame, which contains only object and categorial dtype columns.
+        All other columns is droped.
     """
     df = df.select_dtypes(include=['object']).copy()
 
@@ -99,25 +78,20 @@ def reduce_obj_mem_usage(df, verbose=True):
 
 
 def search_func(data, *cols):
-    """
-    Function return dictionary of the form: 'value': index, that can be used for
+    """Function return dictionary of the form: 'value': index, that can be used for
     mapping in ordered feature encoding estimators
     
-    Parameters
-    ----------
 
-    :param data: 
-    Pandas data frame
-        pd.DataFrame object
+    data: 
+        pandas data frame
+        pd.DataFrame object:
     
-    :param cols: 
-    List of columns, where function search for unical ordered value
-        list, tuple
+    cols: 
+        list of columns, where function search for unical ordered value
+        list, tuple:
 
-    Return
-    ------
-
-    List of dicts, where keys are names of values for ordered encoding, and values are position in order    
+    Return:
+        List of dicts, where keys are names of values for ordered encoding, and values are position in order    
     """
     full_map = []
 
