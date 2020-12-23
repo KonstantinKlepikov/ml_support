@@ -7,12 +7,15 @@ from abc import ABC, abstractmethod
 import core_paths
 
 
-class Fabricator:
+class Fabricator(ABC):
 
     """Base class for fabric methods
     """
 
-    pass
+    @classmethod
+    @abstractmethod
+    def _is_check_for(cls, check):
+        pass
 
 
 class Loader(ABC):
@@ -493,3 +496,4 @@ if __name__ == "__main__":
     else:
         print('dump load .... None')
         print('.' * 100)
+ 
