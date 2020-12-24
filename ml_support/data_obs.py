@@ -3,18 +3,22 @@ import pandas as pd
 import os, csv, shelve, inspect
 from zipfile import ZipFile
 from zipfile import BadZipfile
+from abc import ABC, abstractmethod
 import core_paths
 
 
-class Fabricator:
+class Fabricator(ABC):
 
     """Base class for fabric methods
     """
 
-    pass
+    @classmethod
+    @abstractmethod
+    def _is_check_for(cls, check):
+        pass
 
 
-class Loader:
+class Loader(ABC):
 
     """Base class for data load
     """
@@ -27,8 +31,16 @@ class Loader:
         self.sep = sep
         self.encoding = encoding
 
+    @abstractmethod
+    def load(self):
+        pass
 
-class Unpacker:
+    @abstractmethod
+    def view(self):
+        pass
+
+
+class Unpacker(ABC):
 
     """Base class for pack and unpack
     """
@@ -37,8 +49,16 @@ class Unpacker:
         self.in_path = in_path
         self.out_path = out_path
 
+    @abstractmethod
+    def unpack(self):
+        pass
 
-class Dumper:
+    @abstractmethod
+    def pack(self):
+        pass
+
+
+class Dumper(ABC):
 
     """Base class for serialize
     """
@@ -48,14 +68,22 @@ class Dumper:
         self.out_path = out_path
         self.dump_list = dump_list
 
+    @abstractmethod
+    def dump(self):
+        pass
 
-class Undumper:
+
+class Undumper(ABC):
 
     """Base class for unserialize
     """
 
     def __init__(self, out_path):
         self.out_path = out_path
+
+    @abstractmethod
+    def undump(self):
+        pass
 
 
 class CSVLoader(Loader, Fabricator):
@@ -468,3 +496,4 @@ if __name__ == "__main__":
     else:
         print('dump load .... None')
         print('.' * 100)
+ 
