@@ -40,9 +40,23 @@ class Loader(ABC):
         pass
 
 
+class Packer(ABC):
+
+    """Base class for pack
+    """
+
+    def __init__(self, in_path, out_path):
+        self.in_path = in_path
+        self.out_path = out_path
+
+    @abstractmethod
+    def pack(self):
+        pass
+
+
 class Unpacker(ABC):
 
-    """Base class for pack and unpack
+    """Base class for unpack
     """
 
     def __init__(self, in_path, out_path):
@@ -51,10 +65,6 @@ class Unpacker(ABC):
 
     @abstractmethod
     def unpack(self):
-        pass
-
-    @abstractmethod
-    def pack(self):
         pass
 
 
@@ -136,9 +146,6 @@ class ZipUnpacker(Unpacker, Fabricator):
                     print('{} ... unpacked'.format(ig))
                 except BadZipfile:
                     print('{} ... wrong file'.format(ig))
-
-    def pack(self):
-        pass
 
 
 class ShelveDumper(Dumper, Fabricator):
